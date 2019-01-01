@@ -11,10 +11,11 @@ buttontext:"Aligner"
 
 (
 	global aligner_floater
-	
-	fn compareC v1 v2 coord: =
+	global AlignerIconImg = openBitMap ("C:\\temp\\AlignerIcons.bmp")
+
+	fn compareFN v1 v2 coord: =
 	(
-		local d= [0,0,0]
+		local d = [0,0,0]
 		local c = coord
 		
 		case c of 
@@ -47,17 +48,17 @@ buttontext:"Aligner"
 		(
 			case axis of
 			(
-				"xCnt": qsort obj compareC coord:"xCnt"
-				"yCnt": qsort obj compareC coord:"yCnt"
-				"zCnt": qsort obj compareC coord:"zCnt"
+				"xCnt": qsort obj compareFN coord:"xCnt"
+				"yCnt": qsort obj compareFN coord:"yCnt"
+				"zCnt": qsort obj compareFN coord:"zCnt"
 			)
 			
-			startPos = in coordsys (Inverse(getViewTM())) (obj[1].max - obj[1].min)/2.0 + obj[1].min --obj[1].pos
-			endPos = in coordsys (Inverse(getViewTM())) (obj[obj.count].max - obj[obj.count].min)/2.0 + obj[obj.count].min   --obj[obj.count].pos
+			local startPos = in coordsys (Inverse(getViewTM())) (obj[1].max - obj[1].min)/2.0 + obj[1].min --obj[1].pos
+			local endPos = in coordsys (Inverse(getViewTM())) (obj[obj.count].max - obj[obj.count].min)/2.0 + obj[obj.count].min   --obj[obj.count].pos
 			
 			for i = 1 to i = (obj.count - 2) do 
 			(		
-				evenPos = startPos + (((endPos - startPos)/(obj.count - 1)) * (i as float))
+				local evenPos = startPos + (((endPos - startPos)/(obj.count - 1)) * (i as float))
 				
 				if axis == "xCnt" then 
 				(
@@ -118,13 +119,13 @@ buttontext:"Aligner"
 		(
 			case axis of
 			(
-				"xMin": qsort obj compareC coord:"xMin"
-				"yMin": qsort obj compareC coord:"yMin"
-				"zMin": qsort obj compareC coord:"zMin"
+				"xMin": qsort obj compareFN coord:"xMin"
+				"yMin": qsort obj compareFN coord:"yMin"
+				"zMin": qsort obj compareFN coord:"zMin"
 
-				"xMax": qsort obj compareC coord:"xMax"
-				"yMax": qsort obj compareC coord:"yMax"
-				"zMax": qsort obj compareC coord:"zMax"
+				"xMax": qsort obj compareFN coord:"xMax"
+				"yMax": qsort obj compareFN coord:"yMax"
+				"zMax": qsort obj compareFN coord:"zMax"
 			)
 			
 			local minPos = in coordsys (Inverse(getViewTM())) obj[1].min
@@ -162,93 +163,93 @@ buttontext:"Aligner"
 	rollout aligner_floater "Aligner v0.1" width:150 height:300
 	(
 		groupBox DisEvenlyGrp "Distribute Evenly Along:" pos:[5,5] width:140 height:60
-		button dist_X_btn "X" pos:[20,30] 
-		button dist_Y_btn "Y" pos:[60,30] 
-		button dist_Z_btn "Z" pos:[100,30] 
+		button dist_X_btn images:#(AlignerIconImg , undefined, 17,1,1,1,1) toolTip:"Distribute Along X" width:27 height:27 pos:[20,30] 
+		button dist_Y_btn images:#(AlignerIconImg , undefined, 17,2,2,2,2) toolTip:"Distribute Along Y" width:27 height:27 pos:[60,30] 
+		button dist_Z_btn images:#(AlignerIconImg , undefined, 17,3,3,3,3) toolTip:"Distribute Along Z" width:27 height:27 pos:[100,30] 
 		
 		groupBox xAlignGroup "X Align To:" pos:[DisEvenlyGrp.pos.x,DisEvenlyGrp.pos.y + DisEvenlyGrp.height + 10] width:140 height:60
-		button lAlign_X_btn "L" pos:[xAlignGroup.pos.x + 15,xAlignGroup.pos.y + 25] 
-		button cAlign_X_btn "C" pos:[xAlignGroup.pos.x + 55,xAlignGroup.pos.y + 25] 
-		button rAlign_X_btn "R" pos:[xAlignGroup.pos.x + 95,xAlignGroup.pos.y + 25] 
+		button lAlign_X_btn images:#(AlignerIconImg , undefined, 17,4,4,4,4) toolTip:"Align to Min X" width:27 height:27 pos:[xAlignGroup.pos.x + 15,xAlignGroup.pos.y + 25] 
+		button cAlign_X_btn images:#(AlignerIconImg , undefined, 17,5,5,5,5) toolTip:"Align to Center X" width:27 height:27 pos:[xAlignGroup.pos.x + 55,xAlignGroup.pos.y + 25] 
+		button rAlign_X_btn images:#(AlignerIconImg , undefined, 17,6,6,6,6) toolTip:"Align to Max X" width:27 height:27 pos:[xAlignGroup.pos.x + 95,xAlignGroup.pos.y + 25] 
 
 		groupBox yAlignGroup "Y Align To:" pos:[xAlignGroup.pos.x,xAlignGroup.pos.y + xAlignGroup.height + 10] width:140 height:60
-		button lAlign_y_btn "L" pos:[yAlignGroup.pos.x + 15,yAlignGroup.pos.y + 25] 
-		button cAlign_Y_btn "C" pos:[yAlignGroup.pos.x + 55,yAlignGroup.pos.y + 25] 
-		button rAlign_y_btn "R" pos:[yAlignGroup.pos.x + 95,yAlignGroup.pos.y + 25] 
+		button lAlign_y_btn images:#(AlignerIconImg , undefined, 17,7,7,7,7) toolTip:"Align to Min Y" width:27 height:27 pos:[yAlignGroup.pos.x + 15,yAlignGroup.pos.y + 25] 
+		button cAlign_Y_btn images:#(AlignerIconImg , undefined, 17,8,8,8,8) toolTip:"Align to Center Y" width:27 height:27 pos:[yAlignGroup.pos.x + 55,yAlignGroup.pos.y + 25] 
+		button rAlign_y_btn images:#(AlignerIconImg , undefined, 17,9,9,9,9) toolTip:"Align to Max Y" width:27 height:27 pos:[yAlignGroup.pos.x + 95,yAlignGroup.pos.y + 25] 
 
 		groupBox zAlignGroup "Z Align To:" pos:[yAlignGroup.pos.x,yAlignGroup.pos.y + yAlignGroup.height + 10] width:140 height:60
-		button lAlign_Z_btn "L" pos:[zAlignGroup.pos.x + 15,zAlignGroup.pos.y + 25] 
-		button cAlign_Z_btn "C" pos:[zAlignGroup.pos.x + 55,zAlignGroup.pos.y + 25] 
-		button rAlign_Z_btn "R" pos:[zAlignGroup.pos.x + 95,zAlignGroup.pos.y + 25] 
+		button lAlign_Z_btn images:#(AlignerIconImg , undefined, 17,10,10,10,10) toolTip:"Align to Min Z" width:27 height:27 pos:[zAlignGroup.pos.x + 15,zAlignGroup.pos.y + 25] 
+		button cAlign_Z_btn images:#(AlignerIconImg , undefined, 17,11,11,11,11) toolTip:"Align to Center Z" width:27 height:27 pos:[zAlignGroup.pos.x + 55,zAlignGroup.pos.y + 25] 
+		button rAlign_Z_btn images:#(AlignerIconImg , undefined, 17,12,12,12,12) toolTip:"Align to Max Z" width:27 height:27 pos:[zAlignGroup.pos.x + 95,zAlignGroup.pos.y + 25] 
 		
-		on dist_X_btn pressed do with undo label:("Aligner Y") on
+		on dist_X_btn pressed do with undo label:("Distribute Along X") on
 		(
 			local allObjs = for o in selection collect o
 			distribute "xCnt" allObjs
 		)
 		
-		on dist_Y_btn pressed do with undo label:("Aligner Y") on
+		on dist_Y_btn pressed do with undo label:("Distribute Along Y") on
 		(
 			local allObjs = for o in selection collect o
 			distribute "yCnt" allObjs
 		)
 		
-		on dist_Z_btn pressed do with undo label:("Aligner Y") on
+		on dist_Z_btn pressed do with undo label:("Distribute Along Z") on
 		(
 			local allObjs = for o in selection collect o
 			distribute "zCnt" allObjs
 		)
 		
-		on cAlign_X_btn pressed do with undo label:("Aligner Y") on
+		on cAlign_X_btn pressed do with undo label:("Align to Center X") on
 		(
 			local allObjs = for o in selection collect o
 			cAlign "xCnt" allObjs
 		)
 		
-		on cAlign_Y_btn pressed do with undo label:("Aligner Y") on
+		on cAlign_Y_btn pressed do with undo label:("Align to Center Y") on
 		(
 			local allObjs = for o in selection collect o
 			cAlign "yCnt" allObjs
 		)
 		
-		on cAlign_Z_btn pressed do with undo label:("Aligner Y") on
+		on cAlign_Z_btn pressed do with undo label:("Align to Center Z") on
 		(
 			local allObjs = for o in selection collect o
 			cAlign "zCnt" allObjs
 		)
 
-		on lAlign_X_btn pressed do with undo label:("Aligner Y") on
+		on lAlign_X_btn pressed do with undo label:("Align to Min X") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "xMin" allObjs
 		)
 		
-		on lAlign_Y_btn pressed do with undo label:("Aligner Y") on
+		on lAlign_Y_btn pressed do with undo label:("Align to Min Y") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "yMin" allObjs
 		)
 		
-		on lAlign_Z_btn pressed do with undo label:("Aligner Y") on
+		on lAlign_Z_btn pressed do with undo label:("Align to Min Z") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "zMin" allObjs
 		)
 
 
-		on rAlign_X_btn pressed do with undo label:("Aligner Y") on
+		on rAlign_X_btn pressed do with undo label:("Align to Max X") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "xMax" allObjs
 		)
 		
-		on rAlign_Y_btn pressed do with undo label:("Aligner Y") on
+		on rAlign_Y_btn pressed do with undo label:("Align to Max Y") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "yMax" allObjs
 		)
 		
-		on rAlign_Z_btn pressed do with undo label:("Aligner Y") on
+		on rAlign_Z_btn pressed do with undo label:("Align to Max Z") on
 		(
 			local allObjs = for o in selection collect o
 			objAlign "zMax" allObjs
