@@ -8,12 +8,331 @@ macroScript Aligner
 category:"ilya_s Scripts"
 tooltip:"Aligner"
 buttontext:"Aligner"
-
 (
 	global aligner_floater
 	global AlignerIconImg = openBitMap ("C:\\temp\\AlignerIcons.bmp")
 
-	fn compareFN v1 v2 coord: =
+
+	---------------------------------------------
+	-- SPLINE FUNCTIONS -------------------------
+	---------------------------------------------
+
+	fn compareFNKnots v1 v2 coord: =
+	(
+		local d = 0
+		local c = coord
+		
+		case c of 
+		(
+			"xCnt":  d = ( v1[3].x - v2[3].x )
+			"yCnt":  d = ( v1[3].y - v2[3].y )
+			"zCnt":  d = ( v1[3].z - v2[3].z ) 
+		)
+		
+		case of
+		(
+			(d < 0.): -1
+			(d > 0.): 1
+			default: 0
+		)
+	)
+
+	fn checkSpline =
+	(
+		if (subObjectLevel == 1 and IsSubSelEnabled() == true and selection.count == 1 and (modPanel.getCurrentObject() as string == "Edit_Spline:Edit Spline" or modPanel.getCurrentObject() as string  ==  "Editable Spline" or modPanel.getCurrentObject() as string ==  "Line")) then
+		(
+			if (modPanel.getCurrentObject() as string == "Edit_Spline:Edit Spline") then
+			(
+				local qb = QueryBox "Can't perform this action on Edit Spline Modifier.\nYES - Collapse to Editable Spline.\nNO - Leave as is, don't do anything. "
+				if qb == true then
+				(
+					convertToSplineShape  $
+					true
+				)else (false)
+			)else (true)
+		)
+		else (false)
+	)
+
+	fn collectKnots = 
+	(
+		local knotArray = #()
+
+		for i=1 to (numSplines $) do
+		(
+			for k in getKNotSelection $ i do
+			(
+				local knotPos = (in coordsys (Inverse(getViewTM())) (getKnotPoint $ i k))
+				append knotArray  (#(i, k, knotPos))
+			)
+		)
+		return knotArray
+	)
+
+	fn alignKnots axis =
+	(
+		if checkSpline() == true then
+		(
+			local knotArray = collectKnots()
+			
+			if knotArray.count >= 2 then
+			(
+				if (axis == "xCnt" or axis == "yCnt" or axis == "zCnt") then
+				(
+					local centers = [0,0,0]
+					
+					for i=1 to knotArray.count do
+					(
+						centers = centers + knotArray[i][3]
+					)
+					
+					local aveCenter = centers/knotArray.count
+					print aveCenter
+					
+					for i = 1 to (knotArray.count) do 
+					(		
+						in coordsys (Inverse(getViewTM()))
+						local knt = getKnotPoint $ knotArray[i][1] knotArray[i][2]
+						
+						in coordsys (Inverse(getViewTM()))
+						local inVec = getInVec $ knotArray[i][1] knotArray[i][2]
+						
+						in coordsys (Inverse(getViewTM()))
+						local outVec = getOutVec$ knotArray[i][1] knotArray[i][2]
+							
+						case axis of
+						(
+							"xCnt":
+							(
+								in coordsys (Inverse(getViewTM()))
+								setInVec $ knotArray[i][1] knotArray[i][2] [aveCenter.x+(inVec.x-knt.x) ,inVec.y,inVec.z]
+								in coordsys (Inverse(getViewTM()))
+								setOutVec $ knotArray[i][1] knotArray[i][2] [aveCenter.x+(outVec.x-knt.x),outVec.y,outVec.z]	
+								in coordsys (Inverse(getViewTM()))
+								setKnotPoint $ knotArray[i][1] knotArray[i][2] [aveCenter.x,knt.y,knt.z]
+							)
+							"yCnt": 
+							(
+								in coordsys (Inverse(getViewTM()))
+								setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x ,aveCenter.y+(inVec.y-knt.y),inVec.z]
+								in coordsys (Inverse(getViewTM()))
+								setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x ,aveCenter.y+(outVec.y-knt.y),outVec.z]
+								in coordsys (Inverse(getViewTM()))
+								setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,aveCenter.y,knt.z]
+							)
+							"zCnt": 
+							(
+								in coordsys (Inverse(getViewTM()))
+								setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x,inVec.y,aveCenter.z+(inVec.z-knt.z)]
+								in coordsys (Inverse(getViewTM()))
+								setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x,outVec.y,aveCenter.z+(outVec.z-knt.z)]	
+								in coordsys (Inverse(getViewTM()))
+								setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,knt.y,aveCenter.z]
+							)
+						)
+					)
+					updateshape $
+				)
+				else
+				(
+					case axis of
+					(
+						"xMax": qsort knotArray compareFNKnots coord:"xCnt"
+						"yMax": qsort knotArray compareFNKnots coord:"yCnt"
+						"zMax": qsort knotArray compareFNKnots coord:"zCnt"
+
+						"xMin": qsort knotArray compareFNKnots coord:"xCnt"
+						"yMin": qsort knotArray compareFNKnots coord:"yCnt"
+						"zMin": qsort knotArray compareFNKnots coord:"zCnt"
+					)
+
+					local alignMin = knotArray[1][3]
+					local alignMax = knotArray[knotArray.count][3]
+					
+					if (axis == "xMin" or axis == "yMin" or axis == "zMin") then
+					(
+						for i = 2 to i = (knotArray.count) do 
+						(		
+							in coordsys (Inverse(getViewTM()))
+							local knt = getKnotPoint $ knotArray[i][1] knotArray[i][2]
+							
+							in coordsys (Inverse(getViewTM()))
+							local inVec = getInVec $ knotArray[i][1] knotArray[i][2]
+							
+							in coordsys (Inverse(getViewTM()))
+							local outVec = getOutVec $ knotArray[i][1] knotArray[i][2]
+
+							case axis of
+							(
+								"xMin":
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [alignMin.x+(inVec.x-knt.x) ,inVec.y,inVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [alignMin.x+(outVec.x-knt.x),outVec.y,outVec.z]	
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [alignMin.x,knt.y,knt.z]
+								)
+								"yMin": 
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x ,alignMin.y+(inVec.y-knt.y),inVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x ,alignMin.y+(outVec.y-knt.y),outVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,alignMin.y,knt.z]
+								)
+								"zMin": 
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x,inVec.y,alignMin.z+(inVec.z-knt.z)]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x,outVec.y,alignMin.z+(outVec.z-knt.z)]	
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,knt.y,alignMin.z]
+								)
+							)
+						)
+						updateshape $
+					)
+
+					if (axis == "xMax" or axis == "yMax" or axis == "zMax") then
+					(
+						for i = 1 to i = (knotArray.count - 1) do 
+						(		
+							in coordsys (Inverse(getViewTM()))
+							local knt = getKnotPoint $ knotArray[i][1] knotArray[i][2]
+							
+							in coordsys (Inverse(getViewTM()))
+							local inVec = getInVec $ knotArray[i][1] knotArray[i][2]
+							
+							in coordsys (Inverse(getViewTM()))
+							local outVec = getOutVec$ knotArray[i][1] knotArray[i][2]
+
+							case axis of
+							(
+								"xMax":
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [alignMax.x+(inVec.x-knt.x) ,inVec.y,inVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [alignMax.x+(outVec.x-knt.x),outVec.y,outVec.z]	
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [alignMax.x,knt.y,knt.z]
+								)
+								"yMax": 
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x ,alignMax.y+(inVec.y-knt.y),inVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x ,alignMax.y+(outVec.y-knt.y),outVec.z]
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,alignMax.y,knt.z]
+								)
+								"zMax": 
+								(
+									in coordsys (Inverse(getViewTM()))
+									setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x,inVec.y,alignMax.z+(inVec.z-knt.z)]
+									in coordsys (Inverse(getViewTM()))
+									setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x,outVec.y,alignMax.z+(outVec.z-knt.z)]	
+									in coordsys (Inverse(getViewTM()))
+									setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,knt.y,alignMax.z]
+								)
+							)
+						)
+						updateshape $
+					)
+				)
+			)
+			else
+			(
+				MessageBox ("Select 2 or more verteces.")
+			)
+		)
+	)
+
+
+	fn distributeKnots axis = 
+	(
+		if checkSpline() == true then
+		(
+			local knotArray = collectKnots()
+			
+			if knotArray.count >= 3 then
+			(
+
+				case axis of
+				(
+					"xCnt": qsort knotArray compareFNKnots coord:"xCnt"
+					"yCnt": qsort knotArray compareFNKnots coord:"yCnt"
+					"zCnt": qsort knotArray compareFNKnots coord:"zCnt"
+				)
+
+				local startPos = knotArray[1][3]
+				local endPos = knotArray[knotArray.count][3]
+				
+				for i = 2 to (knotArray.count - 1) do 
+				(		
+					local evenPos = startPos + (((endPos - startPos)/(knotArray.count - 1)) * ((i-1) as float))
+					
+					in coordsys (Inverse(getViewTM()))
+					local knt = getKnotPoint $ knotArray[i][1] knotArray[i][2]
+					
+					in coordsys (Inverse(getViewTM()))
+					local inVec = getInVec $ knotArray[i][1] knotArray[i][2]
+					
+					in coordsys (Inverse(getViewTM()))
+					local outVec = getOutVec$ knotArray[i][1] knotArray[i][2]
+						
+					case axis of
+					(
+						"xCnt":
+						(
+							in coordsys (Inverse(getViewTM()))
+							setInVec $ knotArray[i][1] knotArray[i][2] [evenPos.x+(inVec.x-knt.x) ,inVec.y,inVec.z]
+							in coordsys (Inverse(getViewTM()))
+							setOutVec $ knotArray[i][1] knotArray[i][2] [evenPos.x+(outVec.x-knt.x),outVec.y,outVec.z]	
+							in coordsys (Inverse(getViewTM()))
+							setKnotPoint $ knotArray[i][1] knotArray[i][2] [evenPos.x,knt.y,knt.z]
+						)
+						"yCnt": 
+						(
+							in coordsys (Inverse(getViewTM()))
+							setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x ,evenPos.y+(inVec.y-knt.y),inVec.z]
+							in coordsys (Inverse(getViewTM()))
+							setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x ,evenPos.y+(outVec.y-knt.y),outVec.z]
+							in coordsys (Inverse(getViewTM()))
+							setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,evenPos.y,knt.z]
+						)
+						"zCnt": 
+						(
+							in coordsys (Inverse(getViewTM()))
+							setInVec $ knotArray[i][1] knotArray[i][2] [inVec.x,inVec.y,evenPos.z+(inVec.z-knt.z)]
+							in coordsys (Inverse(getViewTM()))
+							setOutVec $ knotArray[i][1] knotArray[i][2] [outVec.x,outVec.y,evenPos.z+(outVec.z-knt.z)]	
+							in coordsys (Inverse(getViewTM()))
+							setKnotPoint $ knotArray[i][1] knotArray[i][2] [knt.x,knt.y,evenPos.z]
+						)
+					)
+				)
+				updateshape $
+			) 
+			else
+			(
+				MessageBox ("Select 3 or more verteces.")
+			)
+		)
+	)
+
+
+
+	---------------------------------------------
+	-- OBJECT FUNCTIONS -------------------------
+	---------------------------------------------
+
+
+
+	fn compareFNKnotsObj v1 v2 coord: =
 	(
 		local d = [0,0,0]
 		local c = coord
@@ -48,9 +367,9 @@ buttontext:"Aligner"
 		(
 			case axis of
 			(
-				"xCnt": qsort obj compareFN coord:"xCnt"
-				"yCnt": qsort obj compareFN coord:"yCnt"
-				"zCnt": qsort obj compareFN coord:"zCnt"
+				"xCnt": qsort obj compareFNKnotsObj coord:"xCnt"
+				"yCnt": qsort obj compareFNKnotsObj coord:"yCnt"
+				"zCnt": qsort obj compareFNKnotsObj coord:"zCnt"
 			)
 			
 			local startPos = in coordsys (Inverse(getViewTM())) (obj[1].max - obj[1].min)/2.0 + obj[1].min --obj[1].pos
@@ -119,13 +438,13 @@ buttontext:"Aligner"
 		(
 			case axis of
 			(
-				"xMin": qsort obj compareFN coord:"xMin"
-				"yMin": qsort obj compareFN coord:"yMin"
-				"zMin": qsort obj compareFN coord:"zMin"
+				"xMin": qsort obj compareFNKnotsObj coord:"xMin"
+				"yMin": qsort obj compareFNKnotsObj coord:"yMin"
+				"zMin": qsort obj compareFNKnotsObj coord:"zMin"
 
-				"xMax": qsort obj compareFN coord:"xMax"
-				"yMax": qsort obj compareFN coord:"yMax"
-				"zMax": qsort obj compareFN coord:"zMax"
+				"xMax": qsort obj compareFNKnotsObj coord:"xMax"
+				"yMax": qsort obj compareFNKnotsObj coord:"yMax"
+				"zMax": qsort obj compareFNKnotsObj coord:"zMax"
 			)
 			
 			local minPos = in coordsys (Inverse(getViewTM())) obj[1].min
@@ -160,12 +479,14 @@ buttontext:"Aligner"
 		else (MessageBox "Select 2 or more objects.")
 	)
 	
-	rollout aligner_floater "Aligner v0.1" width:150 height:300
+	rollout aligner_floater "Aligner v0.1" width:150 height:360
 	(
-		groupBox DisEvenlyGrp "Distribute Evenly Along:" pos:[5,5] width:140 height:60
-		button dist_X_btn images:#(AlignerIconImg , undefined, 17,1,1,1,1) toolTip:"Distribute Along X" width:27 height:27 pos:[20,30] 
-		button dist_Y_btn images:#(AlignerIconImg , undefined, 17,2,2,2,2) toolTip:"Distribute Along Y" width:27 height:27 pos:[60,30] 
-		button dist_Z_btn images:#(AlignerIconImg , undefined, 17,3,3,3,3) toolTip:"Distribute Along Z" width:27 height:27 pos:[100,30] 
+		radiobuttons mode_btn "Mode:" labels:#("Object Selection","Vertex Selection")
+
+		groupBox DisEvenlyGrp "Distribute Evenly Along:" pos:[5,65] width:140 height:60
+		button dist_X_btn images:#(AlignerIconImg , undefined, 17,1,1,1,1) toolTip:"Distribute Along X" width:27 height:27 pos:[DisEvenlyGrp.pos.x + 15,DisEvenlyGrp.pos.y + 25] 
+		button dist_Y_btn images:#(AlignerIconImg , undefined, 17,2,2,2,2) toolTip:"Distribute Along Y" width:27 height:27 pos:[DisEvenlyGrp.pos.x + 55,DisEvenlyGrp.pos.y + 25] 
+		button dist_Z_btn images:#(AlignerIconImg , undefined, 17,3,3,3,3) toolTip:"Distribute Along Z" width:27 height:27 pos:[DisEvenlyGrp.pos.x + 95,DisEvenlyGrp.pos.y + 25] 
 		
 		groupBox xAlignGroup "X Align To:" pos:[DisEvenlyGrp.pos.x,DisEvenlyGrp.pos.y + DisEvenlyGrp.height + 10] width:140 height:60
 		button lAlign_X_btn images:#(AlignerIconImg , undefined, 17,4,4,4,4) toolTip:"Align to Min X" width:27 height:27 pos:[xAlignGroup.pos.x + 15,xAlignGroup.pos.y + 25] 
@@ -184,75 +505,194 @@ buttontext:"Aligner"
 		
 		on dist_X_btn pressed do with undo label:("Distribute Along X") on
 		(
-			local allObjs = for o in selection collect o
-			distribute "xCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					distribute "xCnt" allObjs
+				)
+				2:
+				(
+					distributeKnots "xCnt"	
+				)
+			)
 		)
 		
 		on dist_Y_btn pressed do with undo label:("Distribute Along Y") on
 		(
-			local allObjs = for o in selection collect o
-			distribute "yCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					distribute "yCnt" allObjs
+				)
+				2:
+				(
+					distributeKnots "yCnt"
+				)
+			)
 		)
 		
 		on dist_Z_btn pressed do with undo label:("Distribute Along Z") on
 		(
-			local allObjs = for o in selection collect o
-			distribute "zCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					distribute "zCnt" allObjs
+				)
+				2:
+				(
+					distributeKnots "zCnt"
+				)
+			)
 		)
 		
 		on cAlign_X_btn pressed do with undo label:("Align to Center X") on
 		(
-			local allObjs = for o in selection collect o
-			cAlign "xCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					cAlign "xCnt" allObjs
+				)
+				2:
+				(
+					alignKnots "xCnt"
+				)
+			)
 		)
 		
 		on cAlign_Y_btn pressed do with undo label:("Align to Center Y") on
 		(
-			local allObjs = for o in selection collect o
-			cAlign "yCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					cAlign "yCnt" allObjs
+				)
+				2:
+				(
+					alignKnots "yCnt" 
+				)
+			)
 		)
 		
 		on cAlign_Z_btn pressed do with undo label:("Align to Center Z") on
 		(
-			local allObjs = for o in selection collect o
-			cAlign "zCnt" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					cAlign "zCnt" allObjs
+				)
+				2:
+				(
+					alignKnots "zCnt"
+				)
+			)
 		)
 
 		on lAlign_X_btn pressed do with undo label:("Align to Min X") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "xMin" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "xMin" allObjs
+				)
+				2:
+				(
+					alignKnots "xMin"
+				)
+			)
 		)
 		
 		on lAlign_Y_btn pressed do with undo label:("Align to Min Y") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "yMin" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "yMax" allObjs
+				)
+				2:
+				(
+					alignKnots "yMax"
+				)
+			)
 		)
 		
 		on lAlign_Z_btn pressed do with undo label:("Align to Min Z") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "zMin" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "zMin" allObjs
+				)
+				2:
+				(
+					alignKnots "zMin"
+				)
+			)
 		)
-
 
 		on rAlign_X_btn pressed do with undo label:("Align to Max X") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "xMax" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "xMax" allObjs
+				)
+				2:
+				(
+					alignKnots "xMax"
+				)
+			)
 		)
 		
 		on rAlign_Y_btn pressed do with undo label:("Align to Max Y") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "yMax" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "yMin" allObjs
+				)
+				2:
+				(
+					alignKnots "yMin"
+				)
+			)
 		)
 		
 		on rAlign_Z_btn pressed do with undo label:("Align to Max Z") on
 		(
-			local allObjs = for o in selection collect o
-			objAlign "zMax" allObjs
+			case mode_btn.state of
+			(
+				1:
+				(
+					local allObjs = for o in selection collect o
+					objAlign "zMax" allObjs
+				)
+				2:
+				(
+					alignKnots "zMax"
+				)
+			)
 		)
 	)
 	
