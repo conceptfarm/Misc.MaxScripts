@@ -19,11 +19,11 @@ version:0.1
 	parameters main rollout:params
 	(
 
-		percent_spn type:#float animatable:true ui:percent_spn default:0
+		percent_spn type:#float animatable:true ui:percent_spn default:50
 		segLength_spn type:#float animatable:true ui:segLength_spn default:4.5
-		length_float type:#float animatable:true 
-
-
+		length_float type:#float animatable:true
+		startObj_val type:#node 
+		endObj_val type:#node 
 	)
 
 	rollout params "Submitter Properties"
@@ -35,10 +35,16 @@ version:0.1
 			button create_btn "Create Geometry" width:buttonWidth
 			
 		)
+
+		group "Start/End Objects"
+		(
+			pickbutton startObj_btn "Pick Start Obj" width:buttonWidth
+			pickbutton endObj_btn "Pick End Obj" width:buttonWidth
+		)
 		
 		group "Animate"
 		(
-			spinner percent_spn "Percent"
+			spinner percent_spn "Percent" type:#float range:[0,100.0,50.0]
 		)
 
 		on create_btn pressed do
@@ -73,9 +79,6 @@ version:0.1
 				3:(Tube smooth:on heightsegs:heightSegs capsegs:1 sides:25 height:shapeLength radius1:(shapeLength/160.0) radius2:(shapeLength/165.0) mapcoords:on realWorldMapSize:on pos:[0,0,0])
 				4:()
 			)
-
-
-
 						
 			xf = XForm()
 			addModifier trimObj xf
@@ -100,23 +103,66 @@ version:0.1
 			pathDeformMod.axis = 2
 			trimObj.transform = $.transform
 
-			trimObj.parent = $
-
-			endObj = Point pos:[0,0,0]
-			endObj.pos.controller = Path_Constraint()
-			endObj.pos.controller.path = $
-			endObj.pos.controller.axis = 2
-			endObj.pos.controller.constantVel = true
-			endObj.pos.controller.follow = true
-			endObj.pos.controller.loop = true
-			endObj.pos.controller.percent.controller = float_script()
-			endObj.pos.controller.percent.controller.AddTarget "percent" $.modifiers[#TrimPath].'percent_spn'.controller
-			endObj.pos.controller.percent.controller.script = "percent/100.0"
 			
-			endObj.scale.controller = scale_script()
-			endObj.scale.controller.AddTarget "percent" $.modifiers[#TrimPath].'percent_spn'.controller
-			endObj.scale.controller.script =  "xy = 1;if percent < 5 then xy = percent/5 else xy = 1;[xy, xy, xy]"
+
+			--endObj = Point pos:[0,0,0]
+			if endObj_val != undefined then
+			(
+				endObj = instance endObj_val
+				endObj.pos.controller = Path_Constraint()
+				endObj.pos.controller.path = $
+				endObj.pos.controller.axis = 2
+				endObj.pos.controller.constantVel = true
+				endObj.pos.controller.follow = true
+				endObj.pos.controller.loop = true
+				endObj.pos.controller.percent.controller = float_script()
+				endObj.pos.controller.percent.controller.AddTarget "percent" $.modifiers[#TrimPath].'percent_spn'.controller
+				endObj.pos.controller.percent.controller.script = "percent/100.0"
+				
+				endObj.scale.controller = scale_script()
+				endObj.scale.controller.AddTarget "percent" $.modifiers[#TrimPath].'percent_spn'.controller
+				endObj.scale.controller.script =  "xy = 1;if percent < 5 then xy = percent/5 else xy = 1;[xy, xy, xy]"
+			)
+
+			--startObj = Point pos:[0,0,0]
+			if startObj_val != undefined then
+			(
+				startObj = instance startObj_val
+				startObj.pos.controller = Path_Constraint()
+				startObj.pos.controller.path = $
+				startObj.pos.controller.axis = 2
+				startObj.pos.controller.constantVel = true
+				startObj.pos.controller.follow = true
+				startObj.pos.controller.loop = true
+				startObj.pos.controller.percent.controller = float_script()
+				startObj.pos.controller.percent.controller.script = "0"
+
+				startObj.scale.controller = scale_script()
+				startObj.scale.controller.AddTarget "percent" $.modifiers[#TrimPath].'percent_spn'.controller
+				startObj.scale.controller.script =  "xy = 1;if percent < 5 then xy = percent/5 else xy = 1;[xy, xy, xy]"
+			)
+
+			trimObj.parent = $
 		)
+
+		on startObj_btn picked obj do
+		(
+			if obj != undefined do
+			(
+				startObj_btn.text = obj.name
+				startObj_val = obj
+			)
+		)
+
+		on endObj_btn picked obj do
+		(
+			if obj != undefined do
+			(
+				endObj_btn.text = obj.name
+				endObj_val = obj
+			)
+		)
+
 
 
 		
@@ -129,26 +175,40 @@ version:0.1
  	(
  		if this != undefined then
  		(
-			result = for i=1 to this.modifiers.count where (classof this.modifiers[i] == TrimPath) collect i
-			if (result.count > 1) then 
+			if classof this == NURBSCurveshape then
 			(
-				local qb = QueryBox "There are more than one Trim Path Modifiers added to this object.\nOverwrite?\nYES - Delete old replace with new\nNO - Do not add the new modifier, leave as is."
-				if qb == true then
-				(
-					for i = result.count to 2 by -1 do
+				--if this then
+				--(
+					result = for i=1 to this.modifiers.count where (classof this.modifiers[i] == TrimPath) collect i
+					if (result.count > 1) then 
 					(
-						print ("false - deleting " + i as string)
-						deleteModifier this (result[i])
+						local qb = QueryBox "There are more than one Trim Path Modifiers added to this object.\nOverwrite?\nYES - Delete old replace with new\nNO - Do not add the new modifier, leave as is."
+						if qb == true then
+						(
+							for i = result.count to 2 by -1 do
+							(
+								print ("false - deleting " + i as string)
+								deleteModifier this (result[i])
+							)
+						)
+						else 
+						(
+							for i = result.count - 1 to 1 by -1 do
+							(
+								print ("true - deleting " + i as string)
+								deleteModifier this (result[i])
+							)
+						)
 					)
-				)
-				else 
-				(
-					for i = result.count - 1 to 1 by -1 do
-					(
-						print ("true - deleting " + i as string)
-						deleteModifier this (result[i])
-					)
-				)
+				--)
+				--else
+				--(
+				--	messageBox "The shape should only have one spline."
+				--)
+			)
+			else
+			(
+				messageBox "This should be a NURBS curve."
 			)
 		)
  	)
