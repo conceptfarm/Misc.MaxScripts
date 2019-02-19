@@ -189,7 +189,7 @@ version:0.1
 						deleteKeys $.charXScale[i].controller #allkeys
 						deleteKeys $.charYScale[i].controller #allkeys
 					)
-				)
+				)catch()
 
 
 
