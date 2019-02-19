@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 -- TrimPath.ms
 -- By Ilya Floussov (ilya@conceptfarm.ca)
--- Feb 16th 2018
+-- Feb 16th 2019
 -- A modifier that is added to the NURBS curve to do a trim path like function
 -- like in AfterEffects.
 -------------------------------------------------------------------------------
