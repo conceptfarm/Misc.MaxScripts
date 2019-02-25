@@ -65,7 +65,7 @@ buttontext:"Copy/Paste Keys"
 			
 			for o in targetObjList do
 			(
-				local sourceFirstFrame =  0f
+				local sourceFirstFrame = 0f
 				local targetFirstFrame = 0f
 				
 				local sourceFirstKeyValue = undefined
@@ -107,7 +107,7 @@ buttontext:"Copy/Paste Keys"
 						local valueOffset = targetFirstKeyValue - sourceFirstKeyValue
 
 						o.rotation.controller = copy sourceObj.rotation.controller
-						o.rotation = (o.rotation + valueOffset)
+						o.rotation.controller.value = (o.rotation.controller.value + valueOffset)
 						insertTime o.rotation.controller (sourceFirstFrame) timeOffset
 					)
 					3:(
