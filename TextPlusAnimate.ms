@@ -38,6 +38,13 @@ version:0.1
 		#shapeAnim: curves.GetItem 3
 	)
 	
+	fn getRollout type = case type of
+	(
+		#rotation: this.rotationParams
+		#scale: this.params
+		#shapeAnim: this.shapeAnimParams
+	)
+
 	local curveEdit = rollout curveEdit "Edit Curve" width:500 height:300
 	(
 		local ccHwnd, cpHwnd
@@ -95,8 +102,8 @@ version:0.1
 	(
 		group "Animation Duration"
 		(
-			spinner startFrame_spn "Start Frame:" type:#integer range:[-1000000,59,0]
-			spinner endFrame_spn   "  End Frame:" type:#integer range:[1,1000000,60]
+			spinner startFrame_spn "Start Frame:" type:#integer range:[-1000000,1000000,0]
+			spinner endFrame_spn   "  End Frame:" type:#integer range:[-1000000,1000000,60]
 			spinner duration_spn   "   Duration:" type:#integer range:[1,1000000,60]
 			spinner mult_spn       "Ani. Offset:" type:#float range:[0.1,1000000,1.0]
 		)
@@ -135,7 +142,7 @@ version:0.1
 			on btnEditScaleCurve pressed do
 				curveEdit.show #scale
 
-			on scaleParams close do
+			on params close do
 			(
 				deleteAllChangeHandlers id:#sweepScale
 				ccScale.numCurves = 0
@@ -158,15 +165,13 @@ version:0.1
 
 		on startFrame_spn changed n do
 		(
-			--if (n > endFrame_spn.value) then (startFrame_spn.value = endFrame_spn.value - 1)
-			endFrame_spn.range = [(n+1),1000000,endFrame_spn.value]
+			if (n > endFrame_spn.value) then (endFrame_spn.value = n + 1)
 			duration_spn.value = endFrame_spn.value - startFrame_spn.value
 		)
 		
 		on endFrame_spn changed n do
 		(
-			--if (n < startFrame_spn.value) then (endFrame_spn.value = startFrame_spn.value + 1)
-			startFrame_spn.range = [-1000000,(endFrame_spn.value-1),startFrame_spn.value]
+			if (n < startFrame_spn.value) then (startFrame_spn.value = n - 1)
 			duration_spn.value = endFrame_spn.value - startFrame_spn.value
 		)
 		
@@ -255,7 +260,7 @@ version:0.1
  	(
  		if this != undefined then
  		(
-			if (classof this == TextPlus) then
+			if (classof this.baseobject == TextPlus) then
 			(
 				result = for i=1 to this.modifiers.count where (classof this.modifiers[i] == TextPlusAnimate) collect i
 				
