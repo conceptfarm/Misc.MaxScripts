@@ -176,13 +176,10 @@ version:0.11
 			pathDeformMod.percent_along_path.controller.script = "percentEnd/100.0"
 			
 
-			local endObj = Point pos:[0,0,0]
+			--endObj = Point pos:[0,0,0]
 			if endObj_val != undefined then
 			(
-				local endObjInst = instance endObj_val
-				endObjInst.rotation = endObj.rotation
-				endObjInst.position = endObj.position
-				endObjInst.parent = endObj
+				endObj = instance endObj_val
 				endObj.pos.controller = Path_Constraint()
 				endObj.pos.controller.path = $
 				endObj.pos.controller.axis = 2
@@ -200,17 +197,13 @@ version:0.11
 				--"xy = 1;if percent < 5 then xy = percent/5 else xy = 1;[xy, xy, xy]"
 			)
 
-			local startObj = Point pos:[0,0,0]
+			--startObj = Point pos:[0,0,0]
 			if startObj_val != undefined then
 			(
-				local startObjInst = instance startObj_val
-				startObjInst.rotation = startObj.rotation
-				startObjInst.position = startObj.position
-				startObjInst.parent = startObj
+				startObj = instance startObj_val
 				startObj.pos.controller = Path_Constraint()
 				startObj.pos.controller.path = $
 				startObj.pos.controller.axis = 2
-				startObj.pos.controller.axisFlip = true
 				startObj.pos.controller.constantVel = true
 				startObj.pos.controller.follow = true
 				startObj.pos.controller.loop = true
