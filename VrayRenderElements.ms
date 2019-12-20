@@ -26,7 +26,7 @@ buttontext:"VrayRenderElements"
 			if ((classof thisElement) as string == elementClass as string) then (append result thisElement)
 		)
 		
-		return result
+		result
 	)
 		
 	fn baseMaterialElements = 
@@ -81,7 +81,8 @@ buttontext:"VrayRenderElements"
 			zdepthArray = getRenderElementByClass VrayZDepth
 			for i = 1 to zdepthArray.count do 
 			(
-				zdepthArray[i].zdepth_use_camera_clip_boudaries = true
+				zdepthArray[i].zdepth_use_camera_clip_boudaries = false
+				
 				if zdepthArray.count > 1 then (zdepthArray[i].elementName = zdepthArray[i].elementName + "_" + i as string)
 			)
 
@@ -110,7 +111,9 @@ buttontext:"VrayRenderElements"
 			zdepthArray = getRenderElementByClass VrayZDepth
 			for i = 1 to zdepthArray.count do 
 			(
-				zdepthArray[i].zdepth_use_camera_clip_boudaries = true
+				zdepthArray[i].zdepth_use_camera_clip_boudaries = false
+				zdepthArray[i].zdepth_min = units.decodeValue "2.0m"
+				zdepthArray[i].zdepth_max = units.decodeValue "250.0m"
 				if zdepthArray.count > 1 then (zdepthArray[i].elementName = zdepthArray[i].elementName + "_" + i as string)
 			)
 			
