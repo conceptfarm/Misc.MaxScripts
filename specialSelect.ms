@@ -1,9 +1,14 @@
+-------------------------------------------------------------------------------
+-- specialSelect.ms
+-- By Ilya Floussov (ilya@conceptfarm.ca)
+-- June 6th 2020
+-- Selects object based on given parameters
+-------------------------------------------------------------------------------
 macroScript SpecialSelect
 category:"ilya_s Scripts"
 internalcategory:"ilya_s Scripts"
 tooltip:"SpecialSelect"
 buttontext:"SpecialSelect"
-
 (
 	local matLib = sceneMaterials
 	local mat_string = ""
