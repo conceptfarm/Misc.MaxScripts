@@ -1,9 +1,3 @@
--------------------------------------------------------------------------------
--- SpecialSelect.ms
--- By Ilya Floussov (ilya@conceptfarm.ca)
--- Dec 16 2019
--- Different selection filters for 3dsmax and vray
--------------------------------------------------------------------------------
 macroScript SpecialSelect
 category:"ilya_s Scripts"
 internalcategory:"ilya_s Scripts"
@@ -157,8 +151,20 @@ buttontext:"SpecialSelect"
 	
 	fn selectMissingProxies = 
 	(
-		local proxies = for o in objects where classof o == VrayProxy collect o
-		local objectsToSelect = for o in proxies where ((doesfileexist o.filename) == false) collect o
+		local proxies = for o in objects where (classof o == VrayProxy) collect o
+		local objectsToSelect = #()
+		for o in proxies do
+		(
+			if o.filename == undefined then
+			(
+				append objectsToSelect o
+			)
+			else if doesFileExist o.filename == false then
+			(
+				append objectsToSelect o
+			)
+			
+		)
 		objectsToSelect		
 	)
 
