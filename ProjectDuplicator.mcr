@@ -5,14 +5,16 @@
 -- Copies the file and its dependencies to a specified location, repaths the
 -- resulting file
 -------------------------------------------------------------------------------
-macroScript ProjectDuplicator
+macroScript ProjectDup
 category:"ilya_s Scripts"
-tooltip:"ProjDup"
-buttontext:"ProjDup"
+tooltip:"ProjDup v1.1"
+buttontext:"ProjDup v1.1"
+
 (
 	global ProjectDupRollout
 	global pathArray = #()
 	global processedArray = #()
+	local copyOnly = false
 	
 	--fileAssets = getMAXFileAssetMetadata (maxfilepath + maxfilename)
 	--for o in fileassets do print o.filename
@@ -32,6 +34,26 @@ buttontext:"ProjDup"
 		f = theDialog.fileNames --the selected filenames will be returned as an array
 		return f
 	)
+	
+	fn getFilesRecursive root pattern =
+	(
+		dir_array = GetDirectories (root+"/*")
+		
+		for d in dir_array do
+		(
+			join dir_array (GetDirectories (d+"/*"))
+		)
+		
+		my_files = #()
+		for f in dir_array do
+		(
+			if ((matchpattern f pattern:"*backup*" == false and matchpattern f pattern:"*04_Animation*" == true) or (matchpattern f pattern:"*backup*" == false and matchpattern f pattern:"*05_Stills*" == true)) then
+			(
+				join my_files (getFiles (f + pattern))
+			)
+		)
+		my_files
+	)	
 	
 	fn getProjectIndex infile = 
 	(
@@ -142,7 +164,8 @@ buttontext:"ProjDup"
 			(
 				--print fileAssets[i]
 				local assetPath = fileAssets[i].filename
-				if (assetPath[1] == "X") then
+				print("Processing Asset: " + assetPath)
+				if (assetPath[1] == "X" or assetPath[1] == "x") then
 				(
 					if (doesfileexist assetPath == false) then
 					(
@@ -153,29 +176,34 @@ buttontext:"ProjDup"
 					(
 						if (getFilenameType  assetPath == ".max") then
 						(
-							print ("Old Path : " + assetPath)
+							print ("Old Maxfile Path : " + assetPath)
 							processMaxFile assetPath newRootPath archivePath projectName
 							newAssetPath = replaceRoot assetPath newRootPath projectName
 							assetPath = newAssetPath
-							fileAssets[i].Filename = newAssetPath
-							
-							print ("New Path : " + newAssetPath)
-							setMAXFileAssetMetadata newPath fileAssets
+							if copyOnly == false then
+							(
+								fileAssets[i].Filename = newAssetPath
+								print ("New Maxfile Path : " + newAssetPath)
+								setMAXFileAssetMetadata newPath fileAssets
+							)
 						)
 						else 
 						(
-							print ("Else Old Path : " + assetPath)
+							print ("Old Non-Maxfile Path : " + assetPath)
 							newAssetPath = replaceRoot assetPath newRootPath projectName
 							if ( doesfileexist (getFilenamePath newAssetPath) == false ) then (makeDir (getFilenamePath newAssetPath))
 							copyFile assetPath newAssetPath
 							assetPath = newAssetPath
-							fileAssets[i].Filename = newAssetPath
-							
-							print ("Else New Path : " + newAssetPath)
-							setMAXFileAssetMetadata newPath fileAssets
+							if copyOnly == false then 
+							(
+								fileAssets[i].Filename = newAssetPath
+								print ("New Non-Maxfile Path : " + newAssetPath)
+								setMAXFileAssetMetadata newPath fileAssets
+							)
 						)
 					)
 				)
+				windows.processPostedMessages()
 			)
 		)
 		else print ("----Already processed----- " + file)
@@ -196,13 +224,15 @@ buttontext:"ProjDup"
 	)
 	
 	
-	rollout ProjectDupRollout "Project Duplicator v1.0" width:600 height:400
+	rollout ProjectDupRollout "Project Duplicator v1.1" width:600 height:400
 	(
 		button findPath_bn "Select Max Files To Duplicate: "
+		button getFileFromRoot_bn "Get all .max files from root dir"
 		listbox scale_cb "Selected Files" items:pathArray
-		editText rootPath "New Project Root: " width: 350 across:2 align:#left
+		editText rootPath "New Project Root: " width: 540 across:2 align:#left
 		button getPath_bn "..." width: 30 align:#right
 		button do_bn "Do" enabled: false
+		checkbox copyOnly_cb "Copy only, don't change paths"  checked:false
 		label l1 "The script will also check these mapped drives:\nV:\\ - \\\\herschel\ProjectsBackup\n \nMap those drives to the specified letters to use this functionality" height: 200
 		
 		
@@ -216,14 +246,46 @@ buttontext:"ProjDup"
 			)
 		)
 		
+		on copyOnly_cb changed state do
+		(
+			copyOnly = state
+		)
 		
 		on findPath_bn pressed do
 		(
 			pathArray = collectImgFiles()
 			scale_cb.items = pathArray
 		)
+		
+		on getFileFromRoot_bn pressed do
+		(
+			rp = getSavePath caption:"Select New Project Root" initialDir:"X:\\"
+			if rp != undefined then
+			(
+				pathArray = getFilesRecursive rp "*.max"
+				scale_cb.items = pathArray
+			)
+		)
 				
-		on do_bn pressed do (changePaths pathArray rootPath.text)
+		on do_bn pressed do 
+		(
+			local proceed = false
+			
+			if copyOnly == false then 
+			(
+				qb = queryBox "Proceed with COPYING and RE-PATHING?"
+				if qb == true then proceed = true
+			)
+			else if copyOnly == true then 
+			(
+				qb = queryBox "Proceed with just COPYING?"
+				if qb == true then proceed = true
+			)
+			
+			if proceed == true then changePaths pathArray rootPath.text
+			
+			messagebox ("Done.")
+		)
 	)
 
 	on execute do 
