@@ -6,7 +6,7 @@ global preHideArray
 global explorerPos_prev
 global explorerSize_prev
 --have to preload image instead of loading in the button itself, gets a wierd display error that way
-global iconImg = openBitMap ("C:\\Program Files\\Autodesk\\3ds Max 2016\\scripts\\Startup\\LaymanIcons\\layIcons.bmp")
+global iconImg = openBitMap ("X:\\00-000_ScriptTest\\scripts\\LaymanIcons\\layIcons.bmp")
 
 fn redrawviews_p = 
 (
@@ -168,7 +168,39 @@ fn redrawviews_p =
 		)
 	)
 	
-	rollout LayManDia "LayMan v1.0" width:48 height:280
+	fn prefixLayerWithFilename =
+	(
+		local qb = queryBox "Prefix this max file name to all/selected layer names?" 
+		if qb then
+		(
+			local layerExplorer = SceneExplorerManager.GetActiveExplorer()
+			local selectedItems = layerExplorer.SelectedItems()
+			local prefix = (filterstring maxfilename ".")[1] + " - "
+			if selectedItems.count != 0 then
+			(
+				for i in selectedItems where isKindOf i Base_Layer do
+				if (i.name != "0" and i.name != "forest_templates") then
+				(
+					i.setname (prefix + i.name)
+				)
+			)
+			else
+			(
+				local n = LayerManager.count
+				
+				for i = 0 to n-1  do
+				(
+					local thisLayer = (layermanager.getlayer i)
+					if (thisLayer.name != "0" and thisLayer.name != "forest_templates") then
+					(
+						thisLayer.setname (prefix + thisLayer.name)
+					)
+				)
+			)
+		)
+	)
+	
+	rollout LayManDia "LayMan v1.0" width:48 height:360
 	(
 		
 		
@@ -186,6 +218,8 @@ fn redrawviews_p =
 		
 		button addToLayer_bn images:#(iconImg , undefined, 13,13,13,13,13) toolTip:"Add Selected Objects to Selected Layer" width:24 height:22
 		button PurgeLay_bn images:#(iconImg , undefined, 13,5,5,5,5) toolTip:"Clean Up Layers" width:24 height:22
+		
+		button prefixLay_bn "Rn" toolTip:"Prefix Layer with File Name" width:24 height:22
 		
 		
 		on HideLay_bn pressed do
@@ -244,6 +278,10 @@ fn redrawviews_p =
 			purgeLay()
 		)
 		
+		on prefixLay_bn pressed do
+		(
+			prefixLayerWithFilename()
+		)
 		
 	)--end rollout
 	
