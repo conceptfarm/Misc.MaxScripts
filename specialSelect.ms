@@ -1,8 +1,8 @@
 -------------------------------------------------------------------------------
--- specialSelect.ms
+-- SpecialSelect.ms
 -- By Ilya Floussov (ilya@conceptfarm.ca)
--- June 6th 2020
--- Selects object based on given parameters
+-- Aug 21 2016
+-- Various object selectors
 -------------------------------------------------------------------------------
 macroScript SpecialSelect
 category:"ilya_s Scripts"
@@ -10,54 +10,74 @@ internalcategory:"ilya_s Scripts"
 tooltip:"SpecialSelect"
 buttontext:"SpecialSelect"
 (
-	local matLib = sceneMaterials
-	local mat_string = ""
-	local obj_id = 1
-	
-	local eff_set = #()
-	local mat_select = #()
-	local fillerSet = #()
+	--local matLib = sceneMaterials
 	local matLib_clean=#()
-	local from_val = 1
-	local to_val = 3
-	local use_range = false
+
 	
-	fn fill_array = 
+	fn fill_array fromN toN = 
 	(
-		eff_set = #()
-		if (to_val != from_val) then
-		(
-			eff_set = #(from_val, to_val)
-			fill_amt = (to_val - from_val) - 1
-			for i = 1 to fill_amt do 
-			(
-				n = from_val + i
-				append eff_set n
-				--print eff_set
-			)
-		)
-		else eff_set = #(to_val)
+		local result = for i = fromN to toN collect i
+		result
 	)
 	
-	fn SelectUnique =
+	fn stringToIntArray str =
 	(
-		local allObj = for o in selection where superclassof o == GeometryClass collect o
-		--clearSelection()
+		local arr = filterString str ", "
+		local result = for o in arr collect o as integer
+		result
+	)
+		
+	fn selectUnique =
+	(
+		local allObj = for o in selection as array where superclassof o == GeometryClass collect o
+		--clearselection as array()
 		for o in allObj do
 		(
-			if InstanceMgr.GetInstances o &instances > 1 then
-			(	
-				InstanceMgr.GetInstances o &instances
-				local otherInst = for p in instances where p!=o collect p
-				for r in otherInst do 
-				(
-					local deleteIndex = findItem allObj r
-					if deleteIndex !=0 then deleteitem allObj deleteIndex
-				)
+			
+			InstanceMgr.GetInstances o &instances
+			for p in instances where p != o do 
+			(
+				local deleteIndex = findItem allObj p
+				if deleteIndex !=0 then deleteitem allObj deleteIndex
 			)
 		)
 		allOBJ
 	)
+	
+	fn getUnique instanceOnly:false =
+	(
+		local result = #()
+		local resultInstaceOnly = #()
+		local instanceOnlyHandle = #()
+		local handles = #()
+		local allObj = #()
+		
+		if selection == undefined then allObj = for o in objects as array collect o
+		else allObj = for o in selection as array collect o
+		
+		for o in allObj do
+		(
+			local h = GetHandleByAnim  o.baseobject
+			if findItem handles h == 0 then 
+			(
+				append result o
+				append handles h
+			)
+			else
+			(
+				--if handles have been found before that means the object is an instance,
+				--we add the object only if it has not been added already to keep the array unique
+				if findItem instanceOnlyHandle h == 0 then 
+				(
+					append instanceOnlyHandle h
+					append resultInstaceOnly o
+				)
+			)
+		)
+		if instanceOnly then result = resultInstaceOnly
+		result
+	)
+
 
 	fn collectValidNodes fromArr = 
 	(
@@ -73,10 +93,10 @@ buttontext:"SpecialSelect"
 		local processObjects = #()
 		if doAll == false then
 		(
-			local qb = queryBox "Select Forest dependencies for ALL Forests in the scene?\nPress No for get dependencies of selected Forests."
+			local qb = queryBox "Select Forest dependencies for ALL Forests in the scene?\n\nNO  - get dependencies of SELECTED Forests.\nYES - get dependencies of ALL Forests."
 		
 			if qb == true then processObjects = for o in objects where classof o == Forest_Pro collect o
-			else processObjects = for o in selection where classof o == Forest_Pro collect o
+			else processObjects = for o in selection as array where classof o == Forest_Pro collect o
 		)
 		else processObjects = for o in objects where classof o == Forest_Pro collect o
 
@@ -96,13 +116,27 @@ buttontext:"SpecialSelect"
 			if o.reserved13 != undefined then append objectsToSelect o.reserved13-- (Spline_Exc) : node
 			if o.reserved14 != undefined then append objectsToSelect o.reserved14-- (Spline_Following) : node
 			if o.reserved24 != undefined then append objectsToSelect o.reserved24-- : node
-			if o.camera != undefined then append objectsToSelect o.camera-- : node
 			if o.lookat != undefined then append objectsToSelect o.lookat-- (Look_At_Target) : node
 			if o.light != undefined then append objectsToSelect o.light-- : node
 			if o.reserved2 != undefined then append objectsToSelect o.reserved2-- (Surface) : node
 	
 		)
 		objectsToSelect = makeUniqueArray objectsToSelect
+		objectsToSelect
+	)
+	
+	fn selectForestFromObject objArr =
+	(
+		local objectsToSelect = #()
+		
+		for o in objArr do
+		(
+			for fp in objects where classof fp == Forest_Pro do
+			(
+				local foundObj = for obj in (collectValidNodes fp.cobjlist) where obj == o collect obj
+				if foundObj.count > 0 then append objectsToSelect fp; break
+			)
+		)
 		objectsToSelect
 	)
 
@@ -113,7 +147,7 @@ buttontext:"SpecialSelect"
 		local forestLayer = layermanager.getLayerFromName "forest_templates"
  		forestLayer.nodes &forestObjects
 
- 		for o in forestObjects do
+ 		for o in forestObjects where (matchpattern o.name pattern:"_forest_template*" casesensitive:false ) == false do
  		(
  			if (findItem processObjects o) == 0 then
  			(
@@ -128,10 +162,10 @@ buttontext:"SpecialSelect"
 	(
 		local objectsToSelect = #()
 		local processObjects = #()
-		local qb = queryBox "Select RailClone dependencies for ALL RailClones in the scene?\nPress No for get dependencies of selected RailClones."
+		local qb = queryBox "Select RailClone dependencies for ALL RailClones in the scene?\nNO  - dependencies of selected RailClones\nYES - dependencies of ALL RailClones"
 		
 		if qb==true then processObjects = for o in objects where classof o == RailClone_Pro collect o
-		else processObjects = for o in selection where classof o == RailClone_Pro collect o
+		else processObjects = for o in selection as array where classof o == RailClone_Pro collect o
 
 		for o in processObjects do 
 		(
@@ -151,6 +185,8 @@ buttontext:"SpecialSelect"
 	(
 		local proxies = for o in objects where classof o == VrayProxy collect o
 		local objectsToSelect = for o in proxies where o.object_list_names.count == 0 collect o
+		--( ( ( (dotnetclass "System.IO.File").GetLastWriteTime(ico) ).ticks)
+		
 		objectsToSelect
 	)
 	
@@ -168,7 +204,6 @@ buttontext:"SpecialSelect"
 			(
 				append objectsToSelect o
 			)
-			
 		)
 		objectsToSelect		
 	)
@@ -177,198 +212,244 @@ buttontext:"SpecialSelect"
 	rollout specialSelect "Special Select" width:240
 	(
 		
-		groupBox grp1 "Select by Object ID" pos:[8,8] width:224 height:56
-		spinner objspinner "Object ID" range:[0,1000,obj_id] pos:[40,32] width:88 height:16 type:#integer
-		button selectobj "Select" pos:[136,32] width:80 height:16
+		groupBox grp1 "Select by Material/Object ID" pos:[8,8] width:224 height:140
+		radioButtons objMtlSelect_sel labels:#("Material ID", "Object ID") pos:[44,32] width:200 height:16
+		radioButtons idList_sel "" pos:[16,60] width:124 height:16 labels:#("ID List") default: 1
+		editText idList_edit "" pos:[92,60] width:120 height:15 text: "1,2,6,9"
+		radioButtons range_sel "" pos:[16,90] width:23 height:16 labels:#("") default: 0 
+		spinner fromID_spn "From " pos:[81,90] width:61 height:16 range:[1,100000,1] type:#integer scale:1 enabled: false
+		spinner toID_spn "To " pos:[160,90] width:53 height:16 range:[1,100000,3] type:#integer scale:1  enabled: false
+		button selectObjByID "Select" pos:[76,120] width:80 height:16
 		
-		on objspinner changed n do
-		(
-			obj_id = n
-			--print obj_id
-		)
-	
-		on selectobj pressed do 
+		
+		on selectObjByID pressed do 
 		(
 			clearselection()
-			for o in objects where o.gbufferChannel == obj_id do selectmore o
+			
+			local idList = #()
+			
+			if (idList_sel.state == 1) then 
+			(
+				idList = stringToIntArray idList_edit.text 
+			)
+			else 
+			(
+				idList = fill_array fromID_spn.value toID_spn.value
+			)
+						
+			case objMtlSelect_sel.state of
+			(
+				1: 
+				(
+					--MATERIAL--
+					local matSelect = #()
+					local objSelect = #()
+						
+					for id in idList do
+					( 
+						for m in matLib_clean do
+						(
+							if m.effectsChannel == id then
+							(
+								append matSelect m
+							)
+								
+							if classof m == vraymtl then
+							(
+								   if m.effect_id == id and m.override_effect_id == true then
+								   (
+									   append matSelect m
+								   )
+							)
+						)
+					)
+					
+					matSelect = makeUniqueArray matSelect
+					
+					for m in matSelect do
+					(
+						local refsDeps = refs.dependents m
+						local refObj = for o in refsDeps where superClassOf o == GeometryClass and isValidNode o == true collect o
+						join objSelect refObj
+					)
+					
+					select objSelect
+				)
+				
+				2:
+				(
+					--OBJECT--
+					local objSelect = #()
+					for id in idList do 
+					(
+						local temp = for o in objects where o.gbufferChannel == id collect o
+						join objSelect temp
+					)
+					select objSelect
+				)
+			)
 		)
 		
-		groupBox grp2 "Select by Material ID" pos:[8,75] width:224 height:120
-		radioButtons singular_sel "" pos:[16,100] width:124 height:16 labels:#("Objects w/ Mat ID") default: 1
-		radioButtons range_sel "" pos:[16,131] width:23 height:16 labels:#("") default: 0 
-		editText material_box "" pos:[121,100] width:95 height:15 text: "1,2,6,9"
-		spinner from_mat "From " pos:[81,131] width:61 height:16 range:[1,15,from_val] type:#integer scale:1 enabled: false
-		spinner to_mat "To " pos:[160,131] width:53 height:16 range:[1,15,to_val] type:#integer scale:1  enabled: false
-		button selectid "Select" pos:[76,166] width:80 height:16
-	
-		on singular_sel changed state do
+		on idList_sel changed state do
 		(
-			from_mat.enabled = false
-			to_mat.enabled = false
+			fromID_spn.enabled = false
+			toID_spn.enabled = false
 			range_sel.state = 0
-			material_box.enabled=true
-			use_range = false
+			idList_edit.enabled=true
 		)
 		
 		on range_sel changed state do
 		(
-			from_mat.enabled = true
-			to_mat.enabled = true
-			singular_sel.state = 0
-			material_box.enabled=false
-			fill_array()
-			use_range = true
+			fromID_spn.enabled = true
+			toID_spn.enabled = true
+			idList_sel.state = 0
+			idList_edit.enabled=false
 		)
 		
-		on from_mat changed n do
+		on fromID_spn changed n do
 		(
-			if (n>to_val) then (n = to_val)
-			from_val = n
-			from_mat.value = n
-			fill_array()
+			if (n > toID_spn.value) then (n = toID_spn.value)
+			fromID_spn.value = n
 		)
 		
-		on to_mat changed n do
+		on toID_spn changed n do
 		(
-			if (n<from_val) then (n = from_val)
-			to_val = n
-			to_mat.value = n
-			fill_array()
+			if (n < fromID_spn.value) then (n = fromID_spn.value)
+			toID_spn.value = n
 		)
 		
-		on material_box changed txt do
+		on idList_edit changed txt do
 		(	
-			tempstring = ""
-			allowed = #("0","1","2","3","4","5","6","7","8","9",","," ")
-			for i=1 to txt.count do
+			local tempstring = ""
+			local allowed = #("0","1","2","3","4","5","6","7","8","9",","," ")
+			for i = 1 to txt.count do
 			(
-				tempchar = txt[i] as string
+				local tempchar = txt[i] as string
 				if (finditem allowed tempchar != 0) then (tempstring = tempstring + tempchar)
 			)
-			material_box.text = tempstring
-			--print tempstring
+			idList_edit.text = tempstring
 		)
 		
-		on material_box entered txt do
-		(
-			mat_string = material_box.text	
-		)
+		groupbox grp2 "Select by Material Type" pos:[8, grp1.pos.y + grp1.height + 10] width:224 height:(4*30+20)
+		button select_no_mat "No Material" width: 150 pos:[45,grp2.pos.y + 20]
+		button select_standard "Standard"  width: 150 --pos:[45,250]
+		button select_multi "Multi/Sub-Object" width: 150 --pos:[45,274]
+		button select_nonvray "Non Vray" width: 150 --pos:[45,298]
 		
-		on selectid pressed do
-		(
-			clearselection()
-			if (use_range == false) then (eff_set = filterString mat_string ", ")
-			mat_select = #()
-				
-			for i = 1 to eff_set.count do
-			( 
-				temp = for m in matLib_clean where m.effectsChannel == eff_set[i] as integer collect m
-				join mat_select temp 
-				mat_select = makeUniqueArray mat_select
-				--print mat_select
-			)
-			
-			for i = 1 to mat_select.count do
-			(
-				for o in objects where o.material == mat_select[i] do selectmore o
-			)
-		)
+		groupbox grp3 "Select by Geometry" pos:[8, grp2.pos.y + grp2.height + 10] width:224 height:(2*30+20)
+		button select_novert "Zero Vert Objects" width: 150 pos:[45, grp3.pos.y + 20]
+		button select_unique "Unique Objects" width: 150 --pos:[45,346]
 		
-		groupbox gp3 "Select by Material Type" pos:[8,202] width:224 height:314
-		button select_no_mat "No Material" width: 150 pos:[45,226]
-		button select_standard "Standard"  width: 150 pos:[45,250]
-		button select_multi "Multi/Sub-Object" width: 150 pos:[45,274]
-		button select_nonvray "Non Vray" width: 150 pos:[45,298]
-		button select_novert "Zero Vert Objects" width: 150 pos:[45,322]
-		button select_unique "Unique Objects" width: 150 pos:[45,346]
-		button select_FPDeps "Forest Depends" width: 150 pos:[45,370]
-		button select_FPJunkDeps "Unused Forest Depends" width: 150 pos:[45,394]
-		button select_RCDeps "RailClone Depeds" width: 150 pos:[45,418]
-		button select_oldProxies "Old Proxies" width: 150 pos:[45,442]
-		button select_MissingProxies "Proxies w/ Missing Path" width: 150 pos:[45,466]
+		groupbox grp4 "Select Forest Pro/RailClone" pos:[8, grp3.pos.y + grp3.height + 10] width:224 height:(4*30+20)
+		button select_FPDeps "Forest Depends" width: 150 pos:[45, grp4.pos.y + 20]
+		button select_FPJunkDeps "Unused Forest Depends" width: 150 --pos:[45,394]
+		button select_FPFromObj "Select Forest From Obj" width: 150 
+		button select_RCDeps "RailClone Depends" width: 150 
+		
+		groupbox grp5 "Select Proxies" pos:[8, grp4.pos.y + grp4.height + 10] width:224 height:(2*30+20)
+		button select_oldProxies "Old Proxies" width: 150 pos:[45, grp5.pos.y + 20]
+		button select_MissingProxies "Proxies w/ Missing Path" width: 150 
 		
 		
 		on select_no_mat pressed do
 		(
-			objs = #()
-			for o in geometry where o.material == undefined do (append objs o)
-			select objs
+			clearselection()
+			select (for o in (#() + shapes + geometry) where o.material == undefined collect o)
 		)
-		
-		
 		
 		on select_standard pressed do
 		(
-			for o in objects where (classof o.material as string == "Standardmaterial") do selectmore o  
+			clearselection()
+			select (for o in objects where (classof o.material == Standardmaterial) collect o)
 		)
-		
-		
 		
 		on select_multi pressed do
 		(
-			for o in objects where (classof o.material as string == "Multimaterial") do selectmore o  
+			clearselection()
+			select (for o in objects where (classof o.material == Multimaterial) collect o)
 		)
-		
-		
+
 		on select_nonvray pressed do
 		(
-			for o in objects where (classof o.material as string != "VRayMtl" and 
-				classof o.material as string != "VRayLightMtl" and
-				classof o.material as string != "VRayFastSSS2" and 
-				classof o.material as string != "VRayFastSSS" and
-				classof o.material as string != "VRayBlendMtl" and
-				classof o.material as string != "VRay2SidedMtl" and
-				classof o.material as string != "VRayOverrideMtl" and
-				classof o.material as string != "VRayMtlWrapper" and
-				classof o.material as string != "Multimaterial") do selectmore o  
+			local obj = for o in (#() + shapes + geometry) where (classof o.material as string != "VRayMtl" and 
+				classof o.material != VRayLightMtl and
+				classof o.material != VRayFastSSS2 and 
+				classof o.material != VRayFastSSS and
+				classof o.material != VRayBlendMtl and
+				classof o.material != VRay2SidedMtl and
+				classof o.material != VRayOverrideMtl and
+				classof o.material != VRayMtlWrapper and
+				classof o.material != Multimaterial and
+				o.material != undefined) collect o 
+			clearselection()
+			select obj
 		)
 		
 		on select_novert pressed do
 		(
-			try (for o in objects where (o.mesh.numverts == 0) do selectmore o) catch()
-			
+			clearselection()
+			local meshObj = #()
+			for o in objects where classof o.baseobject == Editable_mesh do
+			(
+				if o.mesh.numverts <=2 do append meshObj o
+			)
+
+			local polyObj = #()
+			for o in objects where classof o.baseobject == Editable_Poly do
+			(
+				if o.numverts <=2 do append polyObj o
+			)
+			join polyObj meshObj
+			select polyObj
 		)
 		
 		on select_unique pressed do
 		(
-			local allob = SelectUnique()
+			local allobj = getUnique()
 			clearselection()
-			select allob
+			select allobj
 		)
 
 		on select_FPDeps pressed do
 		(
-			local allob = selectForestDeps()
+			local allobj = selectForestDeps()
 			clearselection()
-			select allob
+			select allobj
 		)
-
+		
+		on select_FPFromObj pressed do
+		(
+			local allobj = selectForestFromObject (selection as array)
+			clearselection()
+			select allobj
+		)
+		
 		on select_FPJunkDeps pressed do
 		(
-			local allob = selectForestJunkDeps()
+			local allobj = selectForestJunkDeps()
 			clearselection()
-			select allob
+			select allobj
 		)
 
 		on select_RCDeps pressed do
 		(
-			local allob = selectRailCloneDeps()
+			local allobj = selectRailCloneDeps()
 			clearselection()
-			select allob
+			select allobj
 		)
 		
 		on select_oldProxies pressed do
 		(
-			local allob = selectOldProxies()
+			local allobj = selectOldProxies()
 			clearselection()
-			select allob
+			select allobj
 		)
 		
 		on select_MissingProxies pressed do
 		(
-			local allob = selectMissingProxies()
+			local allobj = selectMissingProxies()
 			clearselection()
-			select allob
+			select allobj
 		)
 
 	)
@@ -376,8 +457,7 @@ buttontext:"SpecialSelect"
 	
 	on execute do 
 	(
-		--if obj_id == undefined then obj_id = 1
-		for i=1 to matlib.count do ( try( if (matlib[i].effectschannel != undefined) then (append matlib_clean matlib[i])) catch())
+		matlib_clean = for m in sceneMaterials where (try (m.effectschannel != undefined)catch(false)) != false collect m
 		createDialog specialSelect
 	)
 )

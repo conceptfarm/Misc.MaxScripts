@@ -1,24 +1,30 @@
 -------------------------------------------------------------------------------
 -- EditTextureInPS.ms
 -- By Ilya Floussov (ilya@conceptfarm.ca)
--- June 267h 2017
--- Opens Photoshop and opens the map from the current Material Editor Window.
+-- Aug 21 2016
+-- Edit currently selected map in Photoshop, must be either Bitmap or VRayBitmap
 -------------------------------------------------------------------------------
 macroScript EditTexInPS
-Category: "ilya_s Scripts"
+Category: "ilya's Scripts"
 Tooltip: "Edit Texure in PS"
 buttontext:"EditTexInPS"
 (
 	
 	fn editInPS_fn psPath =
 	(
+		print psPath
 		tex = medit.GetCurMtl()
 		if (classof tex == Bitmaptexture ) then
 		( 
-			bm = tex.filename
-			ShellLaunch psPath  bm
+			local bm = tex.filename
+			if doesFileExist bm then ShellLaunch psPath  bm
 		)
-		else MessageBox ("Texture is not a bitmap.")
+		else if (classof tex == VRayBitmap ) then
+		( 
+			local bm = tex.HDRIMapName
+			if doesFileExist bm then ShellLaunch psPath  bm
+		)
+		else MessageBox ("Texture is not a bitmap or VRayBitmap.")
 	)
 	
 	
@@ -30,7 +36,9 @@ buttontext:"EditTexInPS"
 		psExe = getOpenFileName types:"Executable(*.exe)|*.exe"
 		if psExe != undefined then
 		(
+			print psExe
 			setINISetting f "PATHS" "PSPath" psExe
+			
 			editInPS_fn psExe
 		)	
 	)
@@ -42,6 +50,7 @@ buttontext:"EditTexInPS"
 		if psExe != undefined then
 		(
 			setINISetting f "PATHS" "PSPath" psExe
+		
 			editInPS_fn psExe
 		)	
 	)
@@ -49,6 +58,10 @@ buttontext:"EditTexInPS"
 	else 
 	(
 		psExe = (getINISetting f "PATHS" "PSPath")
+		print psEXE
 		editInPS_fn psEXE
 	)
+	
+	
+
 )
