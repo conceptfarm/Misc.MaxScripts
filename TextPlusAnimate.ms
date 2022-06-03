@@ -22,6 +22,8 @@ version:0.1
 		mult_spn type:#float animatable:false ui:mult_spn default:1.0
 		startScale_spn type:#float animatable:false ui:startScale_spn default:0
 		endScale_spn type:#float animatable:false ui:endScale_spn default:1
+		bgPadding_V_val type:#integer animatable:false ui:bgPadding_V_spn default:0
+		bgPadding_H_val type:#integer animatable:false ui:bgPadding_H_spn default:0
 	)
 
 	fn zoomCurveVertical ctrl =
@@ -30,7 +32,122 @@ version:0.1
 		ctrl.zoomValues.x = 130
 		ctrl.scrollValues.x = 2
 	)
+	
+	fn deleteKeysInRange start end =
+	(
+		$.GetPlaintextString &str
+		local nChar = str.count
+		
+		for c = 1 to nChar do
+		(
+			--delete the key that is automatically set at 0, this is assuming that there are max 2 keys per animation (start and end scale)
+			if $.charXScale[c].controller.keys.count > 0 then
+			(
+				for i = $.charXScale[c].controller.keys.count to 1 by -1 do
+				(
+					if $.charXScale[c].controller.keys[i].time <= end and  $.charXScale[c].controller.keys[i].time >= start then
+					(
+						deleteItem $.charXScale[c].controller.keys i
+					)
+				)
+			)
+			
+			if $.charYScale[c].controller.keys.count > 0 then
+			(
+				for i = $.charYScale[c].controller.keys.count to 1 by -1 do
+				(
+					if $.charYScale[c].controller.keys[i].time <= end and  $.charYScale[c].controller.keys[i].time >= start then
+					(
+						deleteItem $.charYScale[c].controller.keys i
+					)
+				)
+			)
+		)
+	)
+	
+	fn charAnimate appendType:#none =
+	(
+		$.GetPlaintextString &str
+		local nChar = str.count
+		
+		if nChar != 0 then
+		(
+			if appendType == #none then
+			(
+				try(
+					for i=1 to $.charXScale.count do 
+					(
+						deleteKeys $.charXScale[i].controller #allkeys
+						deleteKeys $.charYScale[i].controller #allkeys
+					)
+				)catch()
+			)
+			else
+			(
+				deleteKeysInRange this.startFrame_spn this.endFrame_spn
+			)
 
+			local duration = this.duration_spn
+			local mult = this.mult_spn
+			local durationPerCharOrig = duration/nChar
+			local durationPerCharOffset = ((nChar * mult * durationPerCharOrig) - duration)/(nChar - 1)
+			local durationPerChar = duration/nChar*mult
+
+			print ("DPLOffset: " + durationPerCharOffset as string)
+			print ("DPL: " + durationPerChar as string)
+			print ("start f: " + this.startFrame_spn as string)
+
+				
+			for c=1 to nChar do
+			(
+				if $.charXScale[c].controller == undefined then  $.charXScale[c].controller = bezier_Float()
+				if $.charYScale[c].controller == undefined then  $.charYScale[c].controller = bezier_Float()
+				
+				if c==1 then 
+				(
+					local keyTime = this.startFrame_spn
+					addNewKey $.charXScale[c].controller.keys keyTime
+					local index = getKeyIndex $.charXScale[c].controller keyTime
+					$.charXScale[c].controller.keys[index].value = this.startScale_spn
+					addNewKey $.charYScale[c].controller.keys keyTime
+					$.charYScale[c].controller.keys[index].value = this.startScale_spn
+					
+					keyTime = (durationPerChar*c+(this.startFrame_spn))
+					addNewKey $.charXScale[c].controller.keys keyTime
+					index = getKeyIndex $.charXScale[c].controller keyTime
+					$.charXScale[c].controller.keys[index].value = this.endScale_spn
+					addNewKey $.charYScale[c].controller.keys keyTime
+					$.charYScale[c].controller.keys[index].value = this.endScale_spn
+				) 
+				else 
+				(
+					local keyTime = ((c-1)*(durationPerChar - durationPerCharOffset)+(this.startFrame_spn))
+					addNewKey $.charXScale[c].controller.keys keyTime
+					local index = getKeyIndex $.charXScale[c].controller keyTime
+					$.charXScale[c].controller.keys[index].value = this.startScale_spn
+					addNewKey $.charYScale[c].controller.keys keyTime
+					$.charYScale[c].controller.keys[index].value = this.startScale_spn
+					
+					keyTime = ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar+(this.startFrame_spn))
+					addNewKey $.charXScale[c].controller.keys keyTime
+					index =  getKeyIndex $.charXScale[c].controller keyTime
+					$.charXScale[c].controller.keys[index].value = this.endScale_spn
+					addNewKey $.charYScale[c].controller.keys keyTime
+					$.charYScale[c].controller.keys[index].value = this.endScale_spn
+				)
+				
+				sortKeys #($.charXScale[c].controller.keys)
+				sortKeys #($.charYScale[c].controller.keys)
+			)			
+		)
+		else
+		(
+			MessageBox "The text object must have at least 1 character to animate."
+		)
+	)--on ani end
+	
+	
+	
 	fn getCurveItem type = case type of
 	(
 		#rotation: curves.GetItem 1
@@ -38,13 +155,6 @@ version:0.1
 		#shapeAnim: curves.GetItem 3
 	)
 	
-	fn getRollout type = case type of
-	(
-		#rotation: this.rotationParams
-		#scale: this.params
-		#shapeAnim: this.shapeAnimParams
-	)
-
 	local curveEdit = rollout curveEdit "Edit Curve" width:500 height:300
 	(
 		local ccHwnd, cpHwnd
@@ -105,20 +215,20 @@ version:0.1
 			spinner startFrame_spn "Start Frame:" type:#integer range:[-1000000,1000000,0]
 			spinner endFrame_spn   "  End Frame:" type:#integer range:[-1000000,1000000,60]
 			spinner duration_spn   "   Duration:" type:#integer range:[1,1000000,60]
-			spinner mult_spn       "Ani. Offset:" type:#float range:[0.1,1000000,1.0]
+			spinner mult_spn       "Ani. Overlap:" type:#float range:[0.1,1000000,1.0] tooltip:"Amount of frames that overlap the end of one letter animation with the beginning of the next letter animation. Higher value - smoother animation."
 		)
 
 		group "Start/End Scale"
 		(
-			spinner startScale_spn "Start Scale:" type:#float range:[0,1000000,0.0]
-			spinner endScale_spn   "  End Scale:" type:#float range:[0,1000000,1.0]
+			spinner startScale_spn "Start Scale:" type:#float range:[-1000000,1000000,0.0]
+			spinner endScale_spn   "  End Scale:" type:#float range:[-1000000,1000000,1.0]
 
 			curveControl ccScale numCurves:1 width:135 height:100 \
 			x_range:[0, 1] y_range:[-1e3, 1e3] scrollValues:[2, 5] zoomValues:[135, 40] \
 			rcmFlags:#(#move_xy, #move_x, #move_y, #corner, #bezier, #delete) \
-			uiFlags:#(#constrainY, #noFilterButtons)
-			button btnZoomScaleCurve "Zoom Ext." width:67 across:2 offset:[-5, 0]
-		    button btnEditScaleCurve "Edit Curve..." width:68 offset:[5, 0]
+			uiFlags:#(#constrainY, #noFilterButtons) visible:false 
+			button btnZoomScaleCurve "Zoom Ext." width:67 across:2 offset:[-5, 0] visible:false
+		    button btnEditScaleCurve "Edit Curve..." width:68 offset:[5, 0] visible:false
 			
 
 			
@@ -142,7 +252,7 @@ version:0.1
 			on btnEditScaleCurve pressed do
 				curveEdit.show #scale
 
-			on params close do
+			on scaleParams close do
 			(
 				deleteAllChangeHandlers id:#sweepScale
 				ccScale.numCurves = 0
@@ -152,7 +262,48 @@ version:0.1
 
 		group "Generate Frames"
 		(
-			button animate_btn "Animate" width:buttonWidth	
+			button clearAnimate_btn "Clear + Animate" width:buttonWidth	
+			button appendAnimate_btn "Append + Animate" width:buttonWidth	
+		)
+		
+		group "Create Background"
+		(
+			spinner bgPadding_V_spn "V. BG Pad %:" type:#integer range:[0,100000000000,0]
+			spinner bgPadding_H_spn "H. BG Pad %:" type:#integer range:[0,100000000000,0]
+			button createBG_btn "Create BG" width:buttonWidth	
+			
+			
+			on createBG_btn pressed do
+			(
+
+				local bbox = nodeGetBoundingBox $ $.transform
+				local size = [(bbox[2][1]-bbox[1][1]),(bbox[2][2]-bbox[1][2]),(bbox[2][3]-bbox[1][3])]
+
+				local bg = Box realWorldMapSize:on width:size[1] length:size[2] height:size[3]
+				bg.name = $.name + "_BG"
+				bg.pivot.z = bg.max.z
+				bg.rotation = $.rotation
+				bg.position = [$.center[1], $.center[2], $.center[3]]
+				in coordsys $ bg.position.z = $.max.z
+				bg.parent = $
+				
+				--width
+				bg.width.controller = float_script()
+				bg.width.controller.AddNode  "txt" $
+				scriptstring =  "bbox = nodeGetBoundingBox txt txt.transform\n" + \
+								"w = bbox[2][1]-bbox[1][1]\n" + \
+								"w + w * txt.modifiers[\"Text+ Animate\"].bgPadding_H_val/100.0"
+				bg.width.controller.script = scriptstring
+				
+				--length
+				bg.length.controller = float_script()
+				bg.length.controller.AddNode  "txt" $
+								scriptstring =  "bbox = nodeGetBoundingBox txt txt.transform\n" + \
+								"size = [(bbox[2][1]-bbox[1][1]),(bbox[2][2]-bbox[1][2]),(bbox[2][3]-bbox[1][3])]\n" + \
+								"if (size[1]*size[2]*size[3]) == 0.0 then 0\n" + \
+								"else size[2] + size[2] * txt.modifiers[\"Text+ Animate\"].bgPadding_V_val/100.0"
+				bg.length.controller.script = scriptstring
+			)
 		)
 
 
@@ -165,24 +316,36 @@ version:0.1
 
 		on startFrame_spn changed n do
 		(
-			if (n > endFrame_spn.value) then (endFrame_spn.value = n + 1)
-			duration_spn.value = endFrame_spn.value - startFrame_spn.value
+			--if (n > endFrame_spn.value) then (startFrame_spn.value = endFrame_spn.value - 1)
+			endFrame_spn.value = n+duration_spn.value
+			--duration_spn.value = endFrame_spn.value - startFrame_spn.value
 		)
 		
 		on endFrame_spn changed n do
 		(
-			if (n < startFrame_spn.value) then (startFrame_spn.value = n - 1)
-			duration_spn.value = endFrame_spn.value - startFrame_spn.value
+			--if (n < startFrame_spn.value) then (endFrame_spn.value = startFrame_spn.value + 1)
+			startFrame_spn.value = n-duration_spn.value 
+			--duration_spn.value = endFrame_spn.value - startFrame_spn.value
 		)
 		
 		on duration_spn changed n do
 		(
 			endFrame_spn.value = startFrame_spn.value + n
 		)
-
-
-		on animate_btn pressed do
+		
+		on clearAnimate_btn pressed do
 		(
+			charAnimate appendType:#none
+		)
+		
+		on appendAnimate_btn pressed do
+		(
+			charAnimate appendType:#append
+		)
+		
+		
+		on clearAnimate_btn_old pressed do
+		(		
 			$.GetPlaintextString &str
 			nChar = str.count
 			
@@ -223,21 +386,31 @@ version:0.1
 				(
 					if c==1 then 
 					(
-						--$.SetCharBaseline c (durationPerChar*(c-1)) -40
-						--$.SetCharBaseline c (durationPerChar*c) 0
-						$.SetCharXScale c ((startFrame_spn.value)) 0
-						$.SetCharYScale c ((startFrame_spn.value)) 0
-						$.SetCharXScale c (durationPerChar*c+(startFrame_spn.value)) 1
-						$.SetCharYScale c (durationPerChar*c+(startFrame_spn.value)) 1
+						--<boolean>SetCharXScale <index>index <time>time <float>value
+						$.SetCharXScale c ((startFrame_spn.value)) this.startScale_spn
+						$.SetCharYScale c ((startFrame_spn.value)) this.startScale_spn
+						$.SetCharXScale c (durationPerChar*c+(startFrame_spn.value)) this.endScale_spn
+						$.SetCharYScale c (durationPerChar*c+(startFrame_spn.value)) this.endScale_spn
 					) 
 					else 
 					(
-						--$.SetCharBaseline c ((c-1)*(durationPerChar - durationPerCharOffset)) -40
-						--$.SetCharBaseline c ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar) 0
-						$.SetCharXScale c ((c-1)*(durationPerChar - durationPerCharOffset)+(startFrame_spn.value)) 0
-						$.SetCharYScale c ((c-1)*(durationPerChar - durationPerCharOffset)+(startFrame_spn.value)) 0
-						$.SetCharXScale c ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar+(startFrame_spn.value)) 1
-						$.SetCharYScale c ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar+(startFrame_spn.value)) 1
+						$.SetCharXScale c ((c-1)*(durationPerChar - durationPerCharOffset)+(startFrame_spn.value)) this.startScale_spn
+						$.SetCharYScale c ((c-1)*(durationPerChar - durationPerCharOffset)+(startFrame_spn.value)) this.startScale_spn
+						$.SetCharXScale c ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar+(startFrame_spn.value)) this.endScale_spn
+						$.SetCharYScale c ((c-1)*(durationPerChar - durationPerCharOffset)+durationPerChar+(startFrame_spn.value)) this.endScale_spn
+					)
+					
+					--delete the key that is automatically set at 0, this is assuming that there are max 2 keys per animation (start and end scale)
+					if $.charXScale[c].controller.keys.count > 2 then
+					(
+						for i = $.charXScale[c].controller.keys.count to 1 by -1 do
+						(
+							if $.charXScale[c].controller.keys[i].time == 0f then
+							(
+								deleteItem $.charXScale[c].controller.keys i
+								deleteItem $.charYScale[c].controller.keys i
+							)
+						)
 					)
 					
 				)
