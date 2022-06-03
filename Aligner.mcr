@@ -10,7 +10,7 @@ tooltip:"Aligner"
 buttontext:"Aligner"
 (
 	global aligner_floater
-	global AlignerIconImg = openBitMap ("C:\\temp\\AlignerIcons.bmp")
+	global AlignerIconImg = openBitMap ("X:\\00-000_ScriptTest\\scripts\\LaymanIcons\\AlignerIcons.bmp")
 
 
 	---------------------------------------------
