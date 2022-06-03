@@ -9,7 +9,6 @@ macroScript ProjectDup
 category:"ilya_s Scripts"
 tooltip:"ProjDup v1.1"
 buttontext:"ProjDup v1.1"
-
 (
 	global ProjectDupRollout
 	global pathArray = #()
@@ -35,19 +34,29 @@ buttontext:"ProjDup v1.1"
 		return f
 	)
 	
-	fn getFilesRecursive root pattern =
+	fn getFilesRecursive root pattern recursive ignore =
 	(
-		dir_array = GetDirectories (root+"/*")
+		if root[root.count] == "\\" then root = substring root 1 (root.count-1)
 		
-		for d in dir_array do
+		local dir_array = #()
+		
+		if recursive then
 		(
-			join dir_array (GetDirectories (d+"/*"))
+			dir_array = GetDirectories (root+"/*")
+			for d in dir_array do
+			(
+				join dir_array (GetDirectories (d+"/*"))
+			)
+		)
+		else 
+		(
+			dir_array = #(root+"/")
 		)
 		
-		my_files = #()
+		local my_files = #()
 		for f in dir_array do
 		(
-			if ((matchpattern f pattern:"*backup*" == false and matchpattern f pattern:"*04_Animation*" == true) or (matchpattern f pattern:"*backup*" == false and matchpattern f pattern:"*05_Stills*" == true)) then
+			if (matchpattern f pattern:"*backup*" == false or ignore == false ) then
 			(
 				join my_files (getFiles (f + pattern))
 			)
@@ -224,15 +233,18 @@ buttontext:"ProjDup v1.1"
 	)
 	
 	
-	rollout ProjectDupRollout "Project Duplicator v1.1" width:600 height:400
+	rollout ProjectDupRollout "Project Duplicator v1.2" width:600 height:400
 	(
-		button findPath_bn "Select Max Files To Duplicate: "
-		button getFileFromRoot_bn "Get all .max files from root dir"
-		listbox scale_cb "Selected Files" items:pathArray
-		editText rootPath "New Project Root: " width: 540 across:2 align:#left
-		button getPath_bn "..." width: 30 align:#right
-		button do_bn "Do" enabled: false
+		button findPath_bn "Select Max Files To Recover" across: 2
+		button getFileFromRoot_bn "Get All .max Files from Folder"
+		checkbox getRec_cb "Get Recursive"  checked:true offset:[getFileFromRoot_bn.pos.x,0]
+		checkbox ignoreBackup_cb "Ignore _backup folders"  checked:true offset:[getFileFromRoot_bn.pos.x,0]
+		listbox scale_cb "Max Files to Recover:" items:pathArray
 		checkbox copyOnly_cb "Copy only, don't change paths"  checked:false
+		editText rootPath "Recover to Location: " width: 540 across:2 align:#left
+		button getPath_bn "..." width: 30 align:#right offset:[0,-2]
+		button do_bn "Recover" enabled: false
+		
 		label l1 "The script will also check these mapped drives:\nV:\\ - \\\\herschel\ProjectsBackup\n \nMap those drives to the specified letters to use this functionality" height: 200
 		
 		
@@ -259,10 +271,10 @@ buttontext:"ProjDup v1.1"
 		
 		on getFileFromRoot_bn pressed do
 		(
-			rp = getSavePath caption:"Select New Project Root" initialDir:"X:\\"
+			local rp = getSavePath caption:"Select New Project Root" initialDir:"X:\\"
 			if rp != undefined then
 			(
-				pathArray = getFilesRecursive rp "*.max"
+				pathArray = getFilesRecursive rp "*.max" getRec_cb.checked ignoreBackup_cb.checked
 				scale_cb.items = pathArray
 			)
 		)
