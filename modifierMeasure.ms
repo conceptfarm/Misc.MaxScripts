@@ -63,13 +63,13 @@ buttontext:"ModMeasure"
 				on inner picked do 
 				(
 					pp = pick2points()
-					if pp != undefined then currentMod.innerAmount = (distance pp1 pp2)
+					if pp != undefined then currentMod.innerAmount = (distance pp[1] pp[2])
 				)
 				
 				on outer picked do 
 				(
 					pp = pick2points()
-					if pp != undefined then currentMod.outerAmount = (distance pp1 pp2)
+					if pp != undefined then currentMod.outerAmount = (distance pp[1] pp[2])
 				)
 			)
 			popupmenu ComboRC
@@ -89,19 +89,19 @@ buttontext:"ModMeasure"
 				on xDisp picked do 
 				(
 					pp = pick2points()
-					if pp != undefined then currentMod.movex = (checkPosNeg currentMod.movex)*(distance pp1 pp2)
+					if pp != undefined then currentMod.movex = (checkPosNeg currentMod.movex)*(distance pp[1] pp[2])
 				)
 				
 				on yDisp picked do 
 				(
 					pp = pick2points()
-					if pp != undefined then currentMod.movey = (checkPosNeg currentMod.movey)*(distance pp1 pp2)
+					if pp != undefined then currentMod.movey = (checkPosNeg currentMod.movey)*(distance pp[1] pp[2])
 				)
 				
 				on zDisp picked do 
 				(
 					pp = pick2points()
-					if pp != undefined then currentMod.movez = (checkPosNeg currentMod.movez)*(distance pp1 pp2)
+					if pp != undefined then currentMod.movez = (checkPosNeg currentMod.movez)*(distance pp[1] pp[2])
 				)
 				
 				on xEvenDisp picked do 
