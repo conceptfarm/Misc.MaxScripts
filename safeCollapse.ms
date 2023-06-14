@@ -5,10 +5,10 @@
 -- Collapses selection to single mesh by adding objects to a mesh in batches,
 -- much faster than built in Collapse and doesn't crash 3dsmax
 -------------------------------------------------------------------------------
-macroScript SafeCollapse
+macroScript SafeCollapse2
 Category: "ilya_s Scripts"
-Tooltip: "Safe Collapse"
-buttontext:"Collapse"
+Tooltip: "Safe Collapse2"
+buttontext:"Collapse2"
 
 (
 	global SafeCollapse

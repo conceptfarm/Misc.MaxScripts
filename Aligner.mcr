@@ -13,10 +13,16 @@ buttontext:"Aligner"
 	global AlignerIconImg = openBitMap ("X:\\00-000_ScriptTest\\scripts\\LaymanIcons\\AlignerIcons.bmp")
 
 
+	
+	fn collectObjects =
+	(
+		local allObjs = for o in selection as array where (isgrouphead o == true or isgroupmember o == false) collect o
+		allObjs
+	)
+	
 	---------------------------------------------
 	-- SPLINE FUNCTIONS -------------------------
 	---------------------------------------------
-
 	fn compareFNKnots v1 v2 coord: =
 	(
 		local d = 0
@@ -251,7 +257,6 @@ buttontext:"Aligner"
 		)
 	)
 
-
 	fn distributeKnots axis = 
 	(
 		if checkSpline() == true then
@@ -329,9 +334,6 @@ buttontext:"Aligner"
 	---------------------------------------------
 	-- OBJECT FUNCTIONS -------------------------
 	---------------------------------------------
-
-
-
 	fn compareFNKnotsObj v1 v2 coord: =
 	(
 		local d = [0,0,0]
@@ -479,7 +481,7 @@ buttontext:"Aligner"
 		else (MessageBox "Select 2 or more objects.")
 	)
 	
-	rollout aligner_floater "Aligner v0.1" width:150 height:360
+	rollout aligner_floater "Aligner v0.2" width:150 height:360
 	(
 		radiobuttons mode_btn "Mode:" labels:#("Object Selection","Vertex Selection")
 
@@ -509,7 +511,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					distribute "xCnt" allObjs
 				)
 				2:
@@ -525,7 +527,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					distribute "yCnt" allObjs
 				)
 				2:
@@ -541,7 +543,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					distribute "zCnt" allObjs
 				)
 				2:
@@ -557,7 +559,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					cAlign "xCnt" allObjs
 				)
 				2:
@@ -573,7 +575,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					cAlign "yCnt" allObjs
 				)
 				2:
@@ -589,7 +591,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					cAlign "zCnt" allObjs
 				)
 				2:
@@ -605,7 +607,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "xMin" allObjs
 				)
 				2:
@@ -621,7 +623,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "yMax" allObjs
 				)
 				2:
@@ -637,7 +639,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "zMin" allObjs
 				)
 				2:
@@ -653,7 +655,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "xMax" allObjs
 				)
 				2:
@@ -669,7 +671,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "yMin" allObjs
 				)
 				2:
@@ -685,7 +687,7 @@ buttontext:"Aligner"
 			(
 				1:
 				(
-					local allObjs = for o in selection collect o
+					local allObjs = collectObjects()
 					objAlign "zMax" allObjs
 				)
 				2:

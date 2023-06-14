@@ -10,11 +10,18 @@ tooltip:"OpenWithoutXrefs"
 buttontext:"OpenWithoutXrefs"
 (
 
-	local maxFile = getOpenFileName caption:"Open max file" types:"3ds max Scene(*.max)|*.max" 
+	local maxFile = getMAXOpenFileName dir:"X:\\" 
 	
 	if (maxFile != undefined) then
 	(
-		local f = (maxFile + "_OpenNoXrefs.max")
+		local f = ((getDir #temp) + "\\" + (getFilenameFile maxFile) + "_OpenNoXrefs.max")
+		
+		if doesFileExist f then 
+		(
+			deleteFile f
+			print ("Removing Existing File: " + f)
+		)
+		
 		local makeCopy = copyFile maxFile f
 				
 		if makeCopy == true then
