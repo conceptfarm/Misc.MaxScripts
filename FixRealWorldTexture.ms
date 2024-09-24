@@ -1,9 +1,3 @@
--------------------------------------------------------------------------------
--- FixRealWorldTexture.ms
--- By Ilya Floussov (ilya@conceptfarm.ca)
--- June 6th 2020
--- Fix real world proportions on a Bitmap map
--------------------------------------------------------------------------------
 macroScript FixRWTex
 Category: "ilya_s Scripts"
 Tooltip: "Fix realworld texture"
@@ -73,6 +67,7 @@ buttontext:"FixRWTex"
 					)
 				)
 				
+				-- Leave Height Fix Width
 				on fixW picked do 
 				(
 					
@@ -174,7 +169,7 @@ buttontext:"FixRWTex"
 					(
 						if tex.bitmap != undefined then
 						(
-							tex.coords.u_tiling = (tex.bitmap.width * tex.coords.v_tiling)/tex.bitmap.height
+							tex.coords.u_tiling = (tex.coords.v_tiling/((tex.bitmap.width * tex.coords.v_tiling)/tex.bitmap.height)) * tex.coords.v_tiling
 						)
 						else
 						(
@@ -186,7 +181,7 @@ buttontext:"FixRWTex"
 						if doesFileExist tex.HDRIMapName then
 						(
 							local bm = openBitMap tex.HDRIMapName
-							tex.coords.u_tiling = (bm.width * tex.coords.v_tiling)/bm.height
+							tex.coords.u_tiling = (tex.coords.v_tiling/((bm.width * tex.coords.v_tiling)/bm.height)) * tex.coords.v_tiling
 							close bm
 							free bm
 						)
