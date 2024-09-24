@@ -35,7 +35,6 @@ buttontext:"ImgPlane"
 
 	fn createImagePlane =
 	(
-		-- = getOpenFileName types:"All|*.*|Jpg(*.jpg)|*.jpg|Jpeg(*.jpeg)|*.jpeg|PNG(*.png)|*.png|Tiff(*.tiff)|*.tiff|Tif(*.tif)|*.tif |Tga(*.tga)|*.tga|"
 		local f = collectImgFiles()
 		if f != undefined then --if the user did not cancel
 		(
@@ -70,12 +69,11 @@ buttontext:"ImgPlane"
 
 	fn createPictureFrame =
 	(
-		-- = getOpenFileName types:"All|*.*|Jpg(*.jpg)|*.jpg|Jpeg(*.jpeg)|*.jpeg|PNG(*.png)|*.png|Tiff(*.tiff)|*.tiff|Tif(*.tif)|*.tif |Tga(*.tga)|*.tga|"
 		local f = collectImgFiles()
 		if f != undefined then --if the user did not cancel
 		(
 				sm = sceneMaterials 
-				smNames = for i=1 to sm.count collect sm[i].name
+				smNames = for i = 1 to sm.count collect sm[i].name
 					
 				for o in f do
 				(
@@ -86,8 +84,7 @@ buttontext:"ImgPlane"
 					genplane.lengthsegs = h_value
 					genplane.widthsegs = w_value
 					genplane.name = "PictureFrame__" + filenameFromPath o + "_picture"
-					--genplane.pivot = [genplane.pivot.x,genplane.pivot.y,0]
-
+					
 
 					local newmat = VrayMtl()
 					newmat.name = "Image__" + filenameFromPath o
@@ -187,10 +184,159 @@ buttontext:"ImgPlane"
 		) --end if
 	) --end function
 
+	--rigged using a reference rectangle
+	fn createPictureFrame2 =
+	(
+		local f = collectImgFiles()
+		if f != undefined then --if the user did not cancel
+		(
+			local oldPropogateToInst = InstanceMgr.autoMtlPropagation
+			InstanceMgr.autoMtlPropagation = false
+			sm = sceneMaterials 
+			smNames = for i = 1 to sm.count collect sm[i].name
+				
+			for o in f do
+			(
+				local imageName = filenameFromPath o
+				local map = openbitmap o
+				local planeSize= convertDisplayUToMaxU 1.6
+				local ratio = (map.width * (convertDisplayUToMaxU 0.5))/map.height
+				local masterRect = Rectangle length:(convertDisplayUToMaxU 0.5) width:ratio cornerRadius:0 transform:(matrix3 [1,0,0] [0,0,1] [0,1,0] [0,0,planeSize/2]) isSelected:off
+				masterRect.name = "PictureFrame__" + imageName + "_master"
+
+				local imagePlane = reference masterRect
+				imagePlane.name = "PictureFrame__" + imageName + "_picture"
+				select imagePlane
+				modPanel.addModToSelection (Uvwmap ()) ui:on
+				imagePlane.modifiers[#UVW_Map].maptype = 0
+				imagePlane.modifiers[#UVW_Map].realWorldMapSize = off
+				imagePlane.modifiers[#UVW_Map].utile = 1
+				imagePlane.modifiers[#UVW_Map].vtile = 1
+				imagePlane.modifiers[#UVW_Map].wtile = 1
+				imagePlane.modifiers[#UVW_Map].length = (convertDisplayUToMaxU 0.5)
+				imagePlane.modifiers[#UVW_Map].width = ratio
+				imagePlane.modifiers[#UVW_Map].height = 1
+					
+					
+				local newmat = VrayMtl()
+				newmat.name = "Image__" + imageName
+				
+				local diff = bitmaptexture()
+				diff.filename = o
+				diff.alphasource = 2
+				diff.coords.realWorldScale = false
+			
+				newmat.texmap_diffuse = diff
+				
+				imagePlane.material = newmat
+				showTextureMap newmat newmat.texmap_diffuse on
+				
+				local glassMat = undefined
+				local frameMat = undefined
+				local paperMat = undefined
+				
+				if (finditem smNames "pF_Glass" == 0) then
+				(
+					glassMat = VrayMtl()
+					glassMat.name = "pF_Glass"
+					glassMat.Reflection = color 235 235 235
+					glassMat.Refraction = color 225 225 225					
+				)
+				else
+				(
+					glassMat = sm[(finditem smNames "pF_Glass")]
+				)
+				
+				if (finditem smNames "pF_Frame" == 0) then
+				(
+					frameMat = VrayMtl()
+					frameMat.Diffuse = color 22 22 22
+					frameMat.name = "pF_Frame"
+					frameMat.Reflection = color 205 205 205
+					frameMat.reflection_glossiness = 0.75
+					frameMat.reflection_subdivs = 25
+					frameMat.reflection_maxDepth = 2
+				)
+				else
+				(
+					frameMat = sm[(finditem smNames "pF_Frame")]
+				)
+				
+				if (finditem smNames "pF_Paper" == 0) then
+				(
+					paperMat = VrayMtl()
+					paperMat.Diffuse = color 242 242 242
+					paperMat.name = "pF_Paper"
+				)
+				else
+				(
+					paperMat = sm[(finditem smNames "pF_Paper")]
+				)
+				
+				
+				local inSet = reference masterRect
+				select inSet
+				inSet.name = "PictureFrame__" + imageName + "_inset"
+				modPanel.addModToSelection (sweep ()) ui:on
+				inSet.modifiers[#Sweep].CurrentBuiltInShape = 2
+				inSet.modifiers[#Sweep].PivotAlignment = 2
+				inSet.modifiers[#Sweep][#Bar_Section].length = (convertDisplayUToMaxU 0.005)
+				inSet.modifiers[#Sweep][#Bar_Section].width = masterRect.width/4.0
+				inSet.modifiers[#Sweep].SmoothSection = off
+				inSet.modifiers[#Sweep].SmoothPath = off
+				inSet.modifiers[#Sweep].xOffset =  0
+				inSet.modifiers[#Sweep].yOffset =  (convertDisplayUToMaxU 0.005)
+				inSet.modifiers[#Sweep].angle = 2
+				inSet.material = paperMat
+
+				local frame = reference masterRect
+				select frame
+				frame.name = "PictureFrame__" + imageName + "_frame"
+				modPanel.addModToSelection (sweep ()) ui:on
+				frame.modifiers[#Sweep].CurrentBuiltInShape = 2
+				frame.modifiers[#Sweep].PivotAlignment = 1
+				frame.modifiers[#Sweep].angle = 0
+				frame.modifiers[#Sweep][#Bar_Section].width = (convertDisplayUToMaxU 0.01)
+				frame.modifiers[#Sweep][#Bar_Section].length = (convertDisplayUToMaxU 0.04)
+				frame.modifiers[#Sweep].yOffset = (convertDisplayUToMaxU 0.01168)
+				frame.modifiers[#Sweep].xOffset.controller = Float_Expression()
+				frame.modifiers[#Sweep].xOffset.controller.AddScalarTarget "inset" inSet.modifiers[#Sweep][#Bar_Section][#width]
+				frame.modifiers[#Sweep].xOffset.controller.AddScalarTarget "theta" inSet.modifiers[#Sweep][#angle]
+				frame.modifiers[#Sweep].xOffset.controller.SetExpression "(cos (radToDeg(theta))) * inset"
+				frame.material = frameMat
+					
+				
+				local fGlass = Rectangle length:1 width:1 cornerRadius:0 transform:(matrix3 [1,0,0] [0,0,1] [0,-1,0] inSet.pos) isSelected:on
+				fGlass.length.controller  = Float_Expression()
+				fGlass.length.controller.AddScalarTarget "length" masterRect[#Object__Rectangle][#length]
+				fGlass.length.controller.AddScalarTarget "inset" inSet.modifiers[#Sweep][#Bar_Section][#width]
+				fGlass.length.controller.AddScalarTarget "theta" inSet.modifiers[#Sweep][#angle]
+				fGlass.length.controller.SetExpression "length + 2 * (cos (radToDeg(theta)) * inset)"
+				fGlass.width.controller  = Float_Expression()
+				fGlass.width.controller.AddScalarTarget "width" masterRect[#Object__Rectangle][#width]
+				fGlass.width.controller.AddScalarTarget "inset" inSet.modifiers[#Sweep][#Bar_Section][#width]
+				fGlass.width.controller.AddScalarTarget "theta" inSet.modifiers[#Sweep][#angle]
+				fGlass.width.controller.SetExpression "width + 2 * (cos (radToDeg(theta)) * inset)"
+				fGlass.name = "PictureFrame__" + imageName + "_glass"
+				modPanel.addModToSelection (Extrude ()) ui:on
+				fGlass.modifiers[#Extrude].amount = (convertDisplayUToMaxU 0.005)
+				fGlass.pos = fGlass.pos + [0, 0.7*(frame.modifiers[#Sweep][#Bar_Section].length) ,0]
+				fGlass.material = glassMat
+					
+				local back = instance fGlass
+				back.name = "PictureFrame__" + imageName + "_backing"
+				back.pos = masterRect.pos - [0, 0.1*(frame.modifiers[#Sweep][#Bar_Section].length) ,0]
+				back.material = paperMat
+					
+				group #(fGlass, frame, inSet, masterRect, imagePlane, back)	name:("PictureFrame_" + imageName)
+			)
+			InstanceMgr.autoMtlPropagation = oldPropogateToInst
+		) --end if
+	) --end function
+
 	
 	fn createGalleryFrame =
 	(
-		-- = getOpenFileName types:"All|*.*|Jpg(*.jpg)|*.jpg|Jpeg(*.jpeg)|*.jpeg|PNG(*.png)|*.png|Tiff(*.tiff)|*.tiff|Tif(*.tif)|*.tif |Tga(*.tga)|*.tga|"
 		local f = collectImgFiles()
 		if f != undefined then --if the user did not cancel
 		(
@@ -313,6 +459,7 @@ buttontext:"ImgPlane"
 		) --end if
 	) --end function
 
+	
 	fn createAlphaImagePlane rendType =
 	(
 		print rendType
@@ -377,8 +524,6 @@ buttontext:"ImgPlane"
 		) --end if
 	)--end function
 
-	
-	
 	
 	fn createMultiIDAnimation = 
 	(
@@ -460,7 +605,7 @@ buttontext:"ImgPlane"
 		
 	)
 
-
+	
 	fn createSilhImagePlane =
 	(
 		local f = collectImgFiles()
@@ -519,7 +664,7 @@ buttontext:"ImgPlane"
 		
 		on create_PF_btn pressed do
 		(
-			createPictureFrame()
+			createPictureFrame2()
 		)
 		
 		on create_GF_btn pressed do
