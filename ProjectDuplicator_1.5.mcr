@@ -160,8 +160,9 @@ buttontext:"ProjDup v1.5"
 	*/
 	fn getFilesRecursive root pattern recursive ignore =
 	(
+		print(root)
 		if root[root.count] == "\\" then root = substring root 1 (root.count-1)
-		
+		print(root)
 		local dir_array = #()
 		
 		if recursive then
@@ -185,6 +186,7 @@ buttontext:"ProjDup v1.5"
 				join my_files (getFiles (f + pattern))
 			)
 		)
+		print(my_files)
 		my_files
 	)	
 	
@@ -614,8 +616,8 @@ buttontext:"ProjDup v1.5"
 		
 		on getFileFromRoot_bn pressed do
 		(
-			local rootPath = getSavePath caption:"Select New Project Root" initialDir:"X:\\"
-			if rp != undefined then
+			local rootPath = getSavePath caption:"Select Folder to Collect Max Files" initialDir:"X:\\"
+			if rootPath != undefined then
 			(
 				pathArray = getFilesRecursive rootPath "*.max" getRec_cb.checked ignoreBackup_cb.checked
 				scale_cb.items = pathArray

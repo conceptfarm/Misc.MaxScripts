@@ -1,9 +1,3 @@
--------------------------------------------------------------------------------
--- RegionEditor.ms
--- By Ilya Floussov (ilya@conceptfarm.ca)
--- November 18th 2020
--- Start and stop viewport region editing
--------------------------------------------------------------------------------
 macroScript RegionEditor
 category:"ilya_s Scripts"
 internalcategory:"ilya_s Scripts"
@@ -14,6 +8,7 @@ buttontext:"REGION"
 	(
 		menuitem disableRR "Disable Region Rendering"
 		menuitem editRR "Start Region Editing"
+		menuitem resetRR "Reset Region"
 		
 		on disableRR picked do 
 		(
@@ -23,6 +18,13 @@ buttontext:"REGION"
 		on editRR picked do 
 		(
 			EditRenderRegion.EditRegion() 
+		)
+		
+		on resetRR picked do
+		(
+			local w = renderWidth
+			local h = renderHeight
+			viewport.setRegionRect viewport.activeviewport ( Box2 (w*0.1) (h*0.1) (w*0.8) (h*0.8) )
 		)
 		
 		on ComboRC open do
@@ -44,6 +46,7 @@ buttontext:"REGION"
 			(
 				editRR.text = "Start Region Editing"
 			)
+			
 		)
 	)
 	popupmenu ComboRC
