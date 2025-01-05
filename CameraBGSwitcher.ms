@@ -49,7 +49,7 @@ buttontext:"CameraBgSwitcher"
 		mycamsnames_array_temp = for o in mycams collect o.name
 		mycamsnames_array = sort mycamsnames_array_temp
 		print ("Found " + mycams.count as string + " cameras in the scene.")
-		spacer = #("Select Camera to Render")
+		spacer = #("Select Camera")
 		mycamsnames_array = join spacer mycamsnames_array
 		
 		try(destroydialog CameraBgSwitcherDia)catch()
