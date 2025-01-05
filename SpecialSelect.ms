@@ -1,9 +1,3 @@
--------------------------------------------------------------------------------
--- SpecialSelect.ms
--- By Ilya Floussov (ilya@conceptfarm.ca)
--- Aug 21 2016
--- Various object selectors
--------------------------------------------------------------------------------
 macroScript SpecialSelect
 category:"ilya_s Scripts"
 internalcategory:"ilya_s Scripts"
@@ -175,6 +169,34 @@ buttontext:"SpecialSelect"
 		objectsToSelect
 	)
 	
+	fn getLayerNodes layerName =
+	(
+		try
+		(
+			local layer = ILayerManager.getLayerObject layerName
+			layer.nodes &layerNodes
+			local result = for o in layerNodes where superclassof o == GeometryClass collect o
+			result
+			
+		)
+		catch(#())
+	)
+	
+	fn subtractArrays thisArr otherArr = 
+	(
+		for i = thisArr.count to i=1 by -1 do
+		(
+			for ele in otherArr do
+			(
+				if thisArr[i] == ele then
+				(
+					deleteItem thisArr i
+				)
+			)
+		)
+		thisArr
+	)
+	
 	fn organizeObj objList fprcName origin padding zPos = 
 	(
 		local prevPos = [0, padding.y, padding.z] + origin
@@ -199,11 +221,13 @@ buttontext:"SpecialSelect"
 			lay.current = true
 			
 			local rect = Rectangle length:(biggestObj + padding.y * 2.0) width:(collectionWidth+padding.x) cornerRadius:0
+			setUserProp rect "RCFP_Organizer" true
 			rect.pos = origin + (getSize rect)/2.0 
 			rect.pos.z = zPos
 			lay.addnode rect
 			
 			local txt = text size:10 kerning:0 leading:0
+			setUserProp txt "RCFP_Organizer" true
 			txt.text = fprcName
 			txt.pos = origin + (getSize txt)/2.0 + [padding.x, 0, padding.z]
 			txt.pos.z = zPos
@@ -217,16 +241,22 @@ buttontext:"SpecialSelect"
 		
 	fn organizeFPRC = 
 	(	
-		local origin = [0,0,0]
+		local origin = [0,0,-100]
 		local padding = [15,15,0]
 		local zPos = -100.0
 		local currLay = LayerManager.current
-				
-
-
-		local fpObjects = for o in objects as array where classof o == Forest_Pro collect o
-		local rcObjects = for o in objects as array where classof o == RailClone_Pro collect o
+		
+		--Get previous organizer shapes and delete them
+		local delOrganizers = for o in shapes where getUserProp o "RCFP_Organizer" != undefined collect o
+		delete delOrganizers
+		
+		local fpObjects = for o in objects as array where classof o.baseObject == Forest_Pro collect o
+		local rcObjects = for o in objects as array where classof o.baseObject == RailClone_Pro collect o
 		local rcfpObjects = join fpObjects rcObjects
+		
+		local processedObj = #()
+		local rcLayerObj = getLayerNodes "railclone_instances" 
+		local fpLayerObj = getLayerNodes "forest_templates"
 		
 		for rcfp in rcfpObjects do
 		(		
@@ -234,14 +264,21 @@ buttontext:"SpecialSelect"
 			if classof rcfp == Forest_Pro then
 			(
 				fObjects = collectValidNodes rcfp.cobjlist
+				fpLayerObj = subtractArrays fpLayerObj fObjects
 			)
 			else
 			(
 				fObjects = collectValidNodes rcfp.sobjnode
+				rcLayerObj = subtractArrays rcLayerObj fObjects
 			)
 			
 			origin = organizeObj fObjects rcfp.name origin padding zPos
+			
 		)
+		--Doesnt work well, need to check for groups, some objects aren't grouped
+		--and become exploded, too many variables
+		--origin = organizeObj rcLayerObj "Orphanned" origin padding zPos
+		--origin = organizeObj fpLayerObj "Orphanned" origin padding zPos
 		currLay.current = true
 	)
 	
@@ -453,19 +490,20 @@ buttontext:"SpecialSelect"
 		on select_novert pressed do
 		(
 			clearselection()
-			local meshObj = #()
-			for o in objects where classof o.baseobject == Editable_mesh do
+			
+			--Still need to check for non-renderable shapes with zero verts
+			local meshObj = for o in geometry as array where ((GetPolygonCount o)[2] < 2 and \
+				classof o != VRayPlane and classof o != Forest_Pro) collect o
+			local rendSplineObj = #()
+			for o in shapes as array where (GetPolygonCount o)[2] < 2 do
 			(
-				if o.mesh.numverts <=2 do append meshObj o
+				try
+				(
+					if o.baseobject.render_renderable == true then append rendSplineObj o 
+				)
+				catch()
 			)
-
-			local polyObj = #()
-			for o in objects where classof o.baseobject == Editable_Poly do
-			(
-				if o.numverts <=2 do append polyObj o
-			)
-			join polyObj meshObj
-			select polyObj
+			select (meshObj + rendSplineObj)
 		)
 		
 		on select_unique pressed do
